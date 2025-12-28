@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>My Drafts</h2>
+
+{% for post in posts %}
+<article>
+    <h3>
+        <a href="{% url 'blog:post_detail' slug=post.slug %}">{{ post.title }}</a>
+        <span style="color:red;">DRAFT</span>
+    </h3>
+    <p>{{ post.excerpt|truncatewords:50 }}</p>
+    <a href="{% url 'blog:post_edit' slug=post.slug %}">Edit</a>
+</article>
+<hr>
+{% empty %}
+<p>No drafts yet.</p>
+{% endfor %}
+{% endblock %}

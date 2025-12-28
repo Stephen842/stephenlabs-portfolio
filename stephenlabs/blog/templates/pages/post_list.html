@@ -1,0 +1,24 @@
+{% extends 'pages/base.html' %}
+{% block content %}
+<h2>Insights & Articles</h2>
+
+{% for post in posts %}
+<article>
+    <h3><a href="{% url 'blog:post_detail' slug=post.slug %}">{{ post.title }}</a></h3>
+    <p>
+        <strong>Category:</strong> {{ post.category.name }} |
+        <strong>Reading Time:</strong> {{ post.reading_time }} min
+    </p>
+    <p>{{ post.excerpt|truncatewords:50 }}</p>
+    <p>
+        <strong>Tags:</strong>
+        {% for tag in post.tags.all %}
+            <a href="#">{{ tag.name }}</a>{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+    </p>
+</article>
+<hr>
+{% empty %}
+<p>No articles yet.</p>
+{% endfor %}
+{% endblock %}

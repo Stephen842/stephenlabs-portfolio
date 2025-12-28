@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<article>
+    <h2>{{ post.title }}</h2>
+
+    {% if post.status == 'draft' %}
+    <span style="color:red; font-weight:bold;">DRAFT</span>
+    {% endif %}
+
+    <p>
+        <strong>Category:</strong> {{ post.category.name }} |
+        <strong>Reading Time:</strong> {{ post.reading_time }} min
+    </p>
+
+    <div>
+        {{ post.content|safe }}
+    </div>
+
+    <p>
+        <strong>Tags:</strong>
+        {% for tag in post.tags.all %}
+            <a href="#">{{ tag.name }}</a>{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+    </p>
+
+    {% if user == post.author %}
+        <a href="{% url 'blog:post_edit' slug=post.slug %}">Edit</a>
+    {% endif %}
+</article>
+{% endblock %}
