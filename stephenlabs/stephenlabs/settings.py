@@ -101,10 +101,13 @@ CONTENT_SECURITY_POLICY = {
         'font-src': (
             "'self'",
             "https://fonts.gstatic.com",
+            "https://cdn.jsdelivr.net",
+            "https://unpkg.com",
         ),
         'script-src': (
             "'self'",
             "https://cdn.jsdelivr.net",
+            "https://unpkg.com",
         ),
     }
 }

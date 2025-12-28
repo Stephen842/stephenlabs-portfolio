@@ -1,52 +1,158 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset='utf-8'>
-    <meta http-equiv = 'X-UA-Compatible' content = 'IE=edge'>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv='content-type' content='text/html; charset = utf-8'/>
-    <meta name = 'robots' content = 'index, follow'>
+    <head>
+        <meta charset='utf-8'>
+        <meta http-equiv = 'X-UA-Compatible' content = 'IE=edge'>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv='content-type' content='text/html; charset = utf-8'/>
+        <meta name = 'robots' content = 'index, follow'>
 
-    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'favicon_io/apple-touch-icon.png' %}">
-    <link rel="icon" sizes="192x192" href="{% static 'favicon_io/android-chrome-192x192.png' %}">
-    <link rel="icon" sizes="256x256" href="{% static 'favicon_io/android-chrome-512x512.png' %}">
-    <link rel="icon" type="image/x-icon" href="{% static 'favicon_io/favicon.ico' %}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon_io/favicon-32x32.png' %}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon_io/favicon-16x16.png' %}">
-    <link rel="manifest" href="{% static 'favicon_io/site.webmanifest' %}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{% static 'favicon_io/apple-touch-icon.png' %}">
+        <link rel="icon" sizes="192x192" href="{% static 'favicon_io/android-chrome-192x192.png' %}">
+        <link rel="icon" sizes="256x256" href="{% static 'favicon_io/android-chrome-512x512.png' %}">
+        <link rel="icon" type="image/x-icon" href="{% static 'favicon_io/favicon.ico' %}">
+        <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon_io/favicon-32x32.png' %}">
+        <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon_io/favicon-16x16.png' %}">
+        <link rel="manifest" href="{% static 'favicon_io/site.webmanifest' %}">
 
-    <link rel = 'stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'>
-    <link rel = 'stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css'>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link rel = 'stylesheet' href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'>
+        <link rel = 'stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css'>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-     <link rel="stylesheet" href="{% static 'main.css' %}">
-    <title>{{ title }}</title>
-</head>
-<body>
-    <header>
-        <h1><a href="#">StephenLabs</a></h1>
-        <nav>
-            {% if user.is_authenticated %}
-                <a href="#">New Article</a>
-                <a href="#">My Drafts</a>
-                <a href="#">Logout</a>
-            {% else %}
-                <a href="#">Login</a>
-            {% endif %}
+        <link rel="stylesheet" href="{% static 'main.css' %}">
+        <title>{{ title }}</title>
+    </head>
+
+    <body class="bg-gray-50 text-gray-900">
+
+        <nav class="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="bg-blue-600 p-1.5 rounded-md flex items-center justify-center">
+                    <img src="{% static 'favicon_io/favicon.ico' %}" alt="StephenLabs Logo" class="w-6 h-6">
+                </div>
+                <span class="text-xl font-bold tracking-tight text-blue-900">StephenLabs <span class="text-gray-400 font-normal">|</span> <span class="text-blue-600 font-semibold">Blog</span></span>
+            </div>
+
+            <div class="flex items-center space-x-6">
+                {% if user.is_authenticated %}
+                    <a href="#" class="text-sm font-medium hover:text-blue-600">New Article</a>
+                    <a href="#" class="text-sm font-medium hover:text-blue-600">Logout</a>
+                {% else %}
+                    <a href="#" class="text-sm font-medium hover:text-blue-600 border border-blue-600 text-blue-600 px-5 py-2 rounded-md hover:bg-blue-50 transition">Subscribe</a>
+                {% endif %}
+            </div>
         </nav>
-    </header>
 
-    <main>
-        {% block content %}{% endblock %}
-    </main>
+        <div class="bg-gradient-to-r from-blue-900 via-blue-700 via-blue-500 to-blue-400 text-white py-3 px-6 text-sm md:text-base overflow-hidden relative">
+            <div class="whitespace-nowrap animate-marquee">
+                <p class="inline-block font-light mr-8">
+                    Notice: StephenLabs is currently undergoing core infrastructure scaling for 2026. Wishing our community a productive holiday season and a prosperous New Year.
+                </p>
+            </div>
+        </div>
 
-    <footer>
-        <p>© {{ year }} StephenLabs</p>
-    </footer>
-</body>
+        <section class="bg-white border-b border-gray-200 py-8 px-6">
+            <div class="max-w-7xl mx-auto flex flex-wrap gap-4 items-center justify-center">
+                
+                <div class="relative flex-grow max-w-md">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-blue-500">
+                        <i class='bx bx-search text-xl'></i>
+                    </span>
+                    <input type="text" placeholder="Search blog" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-600 italic">
+                </div>
+
+                <select class="border border-gray-300 rounded-md px-4 py-2.5 bg-white text-gray-500 min-w-[150px] outline-none">
+                    <option>Category</option>
+                </select>
+
+                <select class="border border-gray-300 rounded-md px-4 py-2.5 bg-white text-gray-500 min-w-[150px] outline-none">
+                    <option>Services</option>
+                </select>
+
+                <select class="border border-gray-300 rounded-md px-4 py-2.5 bg-white text-gray-500 min-w-[150px] outline-none">
+                    <option>Tags</option>
+                </select>
+
+                <button class="bg-white border-2 border-blue-600 text-blue-600 font-bold px-8 py-2 rounded-md hover:bg-blue-50 transition">
+                    Search
+                </button>
+                <a href="#" class="text-blue-600 font-medium underline underline-offset-4 decoration-2">Clear all</a>
+            </div>
+        </section>
+
+
+        <main class="max-w-7xl mx-auto px-6 py-12">
+            {% block content %}{% endblock %}
+        </main>
+
+
+        <footer class="bg-white border-t border-gray-200 pt-16 pb-8">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+                    
+                    <div class="col-span-1 lg:col-span-1">
+                        <div class="flex items-center space-x-2 mb-6">
+                            <div class="bg-blue-600 p-1.5 rounded-md flex items-center justify-center">
+                                <img src="{% static 'favicon_io/favicon.ico' %}" alt="StephenLabs Logo" class="w-6 h-6">
+                            </div>
+                            <span class="text-xl font-bold text-blue-900 tracking-tight">StephenLabs</span>
+                        </div>
+                        <p class="text-gray-500 text-sm leading-relaxed mb-6">
+                            Exploring blockchain, Web3, and DevOps with practical guides, hands-on tutorials, and technical insights. We aim to make advanced concepts accessible while promoting clean code and professional engineering practices.
+                        </p>
+                        <div class="flex space-x-4">
+                            <a href="https://github.com/stephen842" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-blue-600 transition text-xl"><i class='bx bxl-github'></i></a>
+                            <a href="https://www.linkedin.com/in/ugota-c-stephen-6b1846306/" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-blue-600 transition text-xl"><i class='bx bxl-linkedin-square'></i></a>
+                            <a href="https://x.com/ugotastephen" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-blue-600 transition text-xl"><i class='bx bxl-twitter'></i></a>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-sm font-bold uppercase tracking-wider text-gray-900 mb-6">Resources</h4>
+                        <ul class="space-y-4 text-sm text-gray-600">
+                            <li><a href="#" class="hover:text-blue-600 transition">Blog Articles</a></li>
+                            <li><a href="#" class="hover:text-blue-600 transition">Technical Writing</a></li>
+                            <li><a href="#" class="hover:text-blue-600 transition">Tutorials & Guides</a></li>
+                            <li><a href="#" class="hover:text-blue-600 transition">Open Source Projects</a></li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 class="text-sm font-bold uppercase tracking-wider text-gray-900 mb-6">Engineering</h4>
+                        <ul class="space-y-4 text-sm text-gray-600">
+                            <li><a href="#" class="hover:text-blue-600 transition">Django Backend</a></li>
+                            <li><a href="#" class="hover:text-blue-600 transition">Python Programming</a></li>
+                            <li><a href="#" class="hover:text-blue-600 transition">Solidity Smart Contracts</a></li>
+                            <li><a href="#" class="hover:text-blue-600 transition">DevOps & Cloud Practices</a></li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 class="text-sm font-bold uppercase tracking-wider text-gray-900 mb-6">Stay Updated</h4>
+                        <p class="text-sm text-gray-500 mb-4">Subscribe for the latest tutorials, guides, and insights from StephenLabs.</p>
+                        <form action="#" class="flex flex-col space-y-2">
+                            <input type="email" placeholder="email@example.com" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                            <button class="bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition text-sm">
+                                Subscribe
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400">
+                    <p>© {% now 'Y' %} StephenLabs. All rights reserved.</p>
+                    <div class="flex space-x-6 mt-4 md:mt-0">
+                        <a href="#" class="hover:text-gray-600">Privacy Policy</a>
+                        <a href="#" class="hover:text-gray-600">Terms of Service</a>
+                        <a href="#" class="hover:text-gray-600">Cookie Settings</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </body>
 </html>
