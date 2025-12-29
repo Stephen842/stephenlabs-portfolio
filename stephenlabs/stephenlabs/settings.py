@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'django_ckeditor_5',
 ]
 
+SITE_ID = 1
+
 CKEDITOR_5_UPLOAD_PATH = 'uploads/'
 
 CKEDITOR_5_CONFIGS = {
@@ -97,17 +99,21 @@ CONTENT_SECURITY_POLICY = {
             "https://fonts.googleapis.com",
             "https://cdn.jsdelivr.net",
             "https://unpkg.com",
+            "https://cdn.tailwindcss.com"
         ),
         'font-src': (
             "'self'",
             "https://fonts.gstatic.com",
             "https://cdn.jsdelivr.net",
             "https://unpkg.com",
+            "https://cdn.tailwindcss.com"
         ),
         'script-src': (
             "'self'",
             "https://cdn.jsdelivr.net",
             "https://unpkg.com",
+            "https://cdn.tailwindcss.com"
+
         ),
     }
 }

@@ -35,7 +35,7 @@
                 <div class="bg-blue-600 p-1.5 rounded-md flex items-center justify-center">
                     <img src="{% static 'favicon_io/favicon.ico' %}" alt="StephenLabs Logo" class="w-6 h-6">
                 </div>
-                <span class="text-xl font-bold tracking-tight text-blue-900">StephenLabs <span class="text-gray-400 font-normal">|</span> <span class="text-blue-600 font-semibold">Blog</span></span>
+                <span class="text-xl font-bold tracking-tight text-blue-900"><a href="/">StephenLabs <span class="text-gray-400 font-normal">|</span> <span class="text-blue-600 font-semibold">Blog</span></span>
             </div>
 
             <div class="flex items-center space-x-6">
@@ -56,34 +56,49 @@
             </div>
         </div>
 
-        <section class="bg-white border-b border-gray-200 py-8 px-6">
+        <form method="get" action="{% url 'post_list' %}" class="bg-white border-b border-gray-200 py-8 px-6">
+
             <div class="max-w-7xl mx-auto flex flex-wrap gap-4 items-center justify-center">
-                
+
+                <!-- Search -->
                 <div class="relative flex-grow max-w-md">
                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-blue-500">
                         <i class='bx bx-search text-xl'></i>
                     </span>
-                    <input type="text" placeholder="Search blog" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-600 italic">
+                    <input type="text" name="q" value="{{ query|default:'' }}" placeholder="Search blog" class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-600 italic">
                 </div>
 
-                <select class="border border-gray-300 rounded-md px-4 py-2.5 bg-white text-gray-500 min-w-[150px] outline-none">
-                    <option>Category</option>
+                <!-- Category -->
+                <select name="category" class="border border-gray-300 rounded-md px-4 py-2.5 bg-white text-gray-600 min-w-[150px] outline-none">
+                    <option value="">Category</option>
+                    {% for category in categories %}
+                        <option value="{{ category.slug }}"
+                            {% if selected_category == category.slug %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
                 </select>
 
-                <select class="border border-gray-300 rounded-md px-4 py-2.5 bg-white text-gray-500 min-w-[150px] outline-none">
-                    <option>Services</option>
+                <!-- Tags -->
+                <select name="tag" class="border border-gray-300 rounded-md px-4 py-2.5 bg-white text-gray-600 min-w-[150px] outline-none">
+                    <option value="">Tags</option>
+                    {% for tag in tags %}
+                        <option value="{{ tag.slug }}"
+                            {% if selected_tag == tag.slug %}selected{% endif %}>
+                            {{ tag.name }}
+                        </option>
+                    {% endfor %}
                 </select>
 
-                <select class="border border-gray-300 rounded-md px-4 py-2.5 bg-white text-gray-500 min-w-[150px] outline-none">
-                    <option>Tags</option>
-                </select>
-
-                <button class="bg-white border-2 border-blue-600 text-blue-600 font-bold px-8 py-2 rounded-md hover:bg-blue-50 transition">
+                <!-- Submit -->
+                <button type="submit" class="bg-white border-2 border-blue-600 text-blue-600 font-bold px-8 py-2 rounded-md hover:bg-blue-50 transition">
                     Search
                 </button>
-                <a href="#" class="text-blue-600 font-medium underline underline-offset-4 decoration-2">Clear all</a>
+
+                <!-- Clear -->
+                <a href="{% url 'post_list' %}" class="text-blue-600 font-medium underline underline-offset-4 decoration-2"> Clear all </a>
             </div>
-        </section>
+        </form>
 
 
         <main class="max-w-7xl mx-auto px-6 py-12">
@@ -137,7 +152,7 @@
                         <p class="text-sm text-gray-500 mb-4">Subscribe for the latest tutorials, guides, and insights from StephenLabs.</p>
                         <form action="#" class="flex flex-col space-y-2">
                             <input type="email" placeholder="email@example.com" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm">
-                            <button class="bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition text-sm">
+                            <button class="bg-gradient-to-l from-blue-900 via-blue-700 via-blue-500 to-blue-400 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition text-sm">
                                 Subscribe
                             </button>
                         </form>
