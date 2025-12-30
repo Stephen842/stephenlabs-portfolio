@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+        <style>
+            @media only screen and (max-width: 600px) {
+                .container {
+                    width: 100% !important;
+                    border-radius: 0 !important;
+                }
+                .content-padding {
+                    padding: 24px !important;
+                }
+            }
+        </style>
+    </head>
+
+    <body style="margin: 0; padding: 0; background-color: #f4f7fa; font-family: 'Inter', Helvetica, Arial, sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+            <tr>
+                <td align="center" style="padding: 40px 16px;">
+                    <table class="container" width="600" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.08);">
+                        <!-- Header -->
+                        <tr>
+                            <td style="background-color: #060b27; padding: 22px 40px; border-bottom: 4px solid #2563eb;">
+                                <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                                    <tr>
+                                        <td>
+                                            <span style="color: #ffffff; font-weight: 700; font-size: 18px;">
+                                                STEPHENLABS
+                                                <span style="color: #60a5fa; font-weight: 400;"> | Engineering Blog</span>
+                                            </span>
+                                        </td>
+                                        <td align="right">
+                                            <span style="font-family: 'JetBrains Mono', monospace; color: #93c5fd; font-size: 10px; letter-spacing: 1.5px;">
+                                                NEWSLETTER REGISTRY
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <!-- Body -->
+                        <tr>
+                            <td class="content-padding" style="padding: 48px 40px;">
+                                <h1 style="margin: 0 0 18px 0; font-size: 32px; color: #0f172a; font-weight: 700;">
+                                    Welcome to StephenLabs
+                                </h1>
+
+                                <p style="margin: 0 0 20px 0; font-size: 16px; color: #475569; line-height: 1.6;">
+                                    Hello there,
+                                </p>
+
+                                <p style="margin: 0 0 24px 0; font-size: 16px; color: #475569; line-height: 1.6;">
+                                    Thank you for subscribing to the StephenLabs newsletter. You’ll now receive curated
+                                    insights on backend engineering, blockchain systems, DevOps practices, and scalable
+                                    software architecture — delivered directly to your inbox.
+                                </p>
+
+                                <!-- CTA -->
+                                <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 32px;">
+                                    <tr>
+                                        <td align="center" style="padding: 28px;">
+                                            <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
+                                                Explore recent publications
+                                            </p>
+                                            <a href="{{ homepage_url }}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 14px 30px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 15px;">
+                                                View Articles
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <p style="margin: 0; font-size: 14px; color: #94a3b8;">
+                                    Best regards,<br>
+                                    <strong>Stephen</strong><br>
+                                    Lead Engineer, StephenLabs
+                                </p>
+                            </td>
+                        </tr>
+
+                        <!-- Footer -->
+                        <tr>
+                            <td style="padding: 28px 40px; background-color: #f1f5f9; text-align: center; border-top: 1px solid #e2e8f0;">
+                                <p style="margin: 0 0 12px 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                                    You’re receiving this email because you subscribed to updates from StephenLabs.
+                                </p>
+
+                                <table align="center" cellpadding="0" cellspacing="0" role="presentation">
+                                    <tr>
+                                        <td style="padding: 0 10px;">
+                                            <a href="{{ unsubscribe_url }}" style="color: #2563eb; font-size: 12px; text-decoration: underline; font-weight: 600;">
+                                                Unsubscribe
+                                            </a>
+                                        </td>
+                                        <td style="color: #cbd5e1; font-size: 12px;">|</td>
+                                        <td style="padding: 0 10px;">
+                                            <a href="{{ homepage_url }}" style="color: #2563eb; font-size: 12px; text-decoration: underline; font-weight: 600;">
+                                                View in browser
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <p style="margin: 20px 0 0 0; font-size: 11px; color: #94a3b8; letter-spacing: 1px;">
+                                    © {% now 'Y' %} StephenLabs. All rights reserved.
+                                </p>
+                            </td>
+                        </tr>
+
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

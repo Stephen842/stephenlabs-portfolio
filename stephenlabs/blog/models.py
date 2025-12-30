@@ -76,3 +76,12 @@ class Post(models.Model):
         self.reading_time = math.ceil(words / 100) # 100 words per minutes
 
         super().save(*args, **kwargs)
+
+
+class Subscriber(models.Model):
+    email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.email

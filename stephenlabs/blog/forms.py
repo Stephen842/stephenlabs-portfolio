@@ -1,5 +1,5 @@
 from django import forms
-from .models import Post
+from .models import Post, Subscriber
 
 
 class PostForm(forms.ModelForm):
@@ -23,3 +23,9 @@ class PostForm(forms.ModelForm):
         if len(content.split()) < 50:
             raise forms.ValidationError("Content must be at least 50 words.")
         return content
+    
+
+class SubscriberForm(forms.ModelForm):
+    class Meta:
+        model = Subscriber
+        fields = ['email']

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Tag, Post
+from .models import Category, Tag, Post, Subscriber
 
 
 @admin.register(Category)
@@ -53,3 +53,9 @@ class PostAdmin(admin.ModelAdmin):
         if not obj.author_id:
             obj.author = request.user
         super().save_model(request, obj, form, change)
+
+@admin.register(Subscriber)
+class SubscriberAdmin(admin.ModelAdmin):
+    list_display = ('email', 'is_active')
+    search_fields = ('email',)
+    ordering = ('created_at',)
