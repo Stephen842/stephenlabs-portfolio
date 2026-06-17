@@ -4,7 +4,7 @@
 
 {% for post in posts %}
 <article>
-    <h3><a href="{% url 'blog:post_detail' slug=post.slug %}">{{ post.title }}</a></h3>
+    <h3><a href="{% url 'post_detail' slug=post.slug %}">{{ post.title }}</a></h3>
     <p>
         <strong>Category:</strong> {{ post.category.name }} |
         <strong>Reading Time:</strong> {{ post.reading_time }} min

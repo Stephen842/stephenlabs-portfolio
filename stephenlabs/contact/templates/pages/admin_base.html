@@ -1,0 +1,485 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta name="robots" content="index, follow">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'favicon_io/apple-touch-icon.png' %}">
+    <link rel="icon" sizes="192x192" href="{% static 'favicon_io/android-chrome-192x192.png' %}">
+    <link rel="icon" sizes="256x256" href="{% static 'favicon_io/android-chrome-512x512.png' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon_io/favicon.ico' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon_io/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon_io/favicon-16x16.png' %}">
+    <link rel="manifest" href="{% static 'favicon_io/site.webmanifest' %}">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{% static 'main.css' %}">
+    <title>{% block page_title %}Dashboard{% endblock %} — StephensLab</title>
+    
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0D1117;
+            color: #E6EDF3;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+        a { color: inherit; text-decoration: none; }
+        button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+        :root {
+            --bg:          #0D1117;
+            --surface:     #161B22;
+            --surface-2:   #1C2128;
+            --border:      #21262D;
+            --border-2:    #30363D;
+            --text:        #E6EDF3;
+            --text-2:      #C9D1D9;
+            --muted:       #7D8590;
+            --muted-lt:    #484F58;
+            --brand:       #2563EB;
+            --brand-pale:  rgba(37,99,235,0.12);
+            --brand-hover: #1D4ED8;
+            --sidebar-w:   228px;
+            --header-h:    52px;
+            --font-display:'Space Grotesk', sans-serif;
+            --font-body:   'Inter', sans-serif;
+            --font-mono:   'JetBrains Mono', monospace;
+            --radius:      6px;
+            --radius-lg:   10px;
+            --transition:  150ms cubic-bezier(0.4,0,0.2,1);
+            --s-new:       #2F81F7;
+            --s-new-bg:    rgba(47,129,247,0.12);
+            --s-read:      #7D8590;
+            --s-read-bg:   rgba(125,133,144,0.12);
+            --s-replied:   #3FB950;
+            --s-replied-bg:rgba(63,185,80,0.12);
+            --s-archived:  #D29922;
+            --s-archived-bg:rgba(210,153,34,0.12);
+            --s-spam:      #F85149;
+            --s-spam-bg:   rgba(248,81,73,0.12);
+            --s-published: #3FB950;
+            --s-pub-bg:    rgba(63,185,80,0.12);
+            --s-draft:     #D29922;
+            --s-draft-bg:  rgba(210,153,34,0.12);
+        }
+
+        /* Shell */
+        .admin-shell {
+            display: grid;
+            grid-template-columns: var(--sidebar-w) 1fr;
+            grid-template-rows: var(--header-h) 1fr;
+            min-height: 100vh;
+        }
+
+        /* Top bar */
+        .admin-topbar {
+            grid-column: 1 / -1;
+            grid-row: 1;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.25rem;
+            z-index: 20;
+            position: sticky;
+            top: 0;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 0.875rem; }
+        .topbar-logo { display: flex; align-items: center; gap: 0.5rem; }
+        .topbar-logo-mark {
+            width: 26px; height: 26px;
+            background: var(--brand);
+            border-radius: 5px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-display);
+            font-size: 0.6875rem; font-weight: 700;
+            color: #fff; letter-spacing: -0.02em; flex-shrink: 0;
+        }
+        .topbar-logo-name {
+            font-family: var(--font-display);
+            font-size: 0.9375rem; font-weight: 700;
+            color: var(--text); letter-spacing: -0.02em;
+        }
+        .topbar-sep { width: 1px; height: 18px; background: var(--border-2); }
+        .topbar-label {
+            font-family: var(--font-mono); font-size: 0.625rem;
+            font-weight: 500; letter-spacing: 0.1em;
+            text-transform: uppercase; color: var(--muted);
+        }
+        .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+        .topbar-user { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: var(--text-2); }
+        .topbar-avatar {
+            width: 26px; height: 26px;
+            background: var(--brand-pale);
+            border: 1px solid var(--border-2); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-display); font-size: 0.625rem; font-weight: 700; color: var(--brand);
+        }
+        .topbar-btn {
+            display: flex; align-items: center; gap: 0.375rem;
+            font-size: 0.8125rem; color: var(--muted);
+            padding: 0.3rem 0.625rem; border-radius: var(--radius);
+            border: 1px solid var(--border);
+            transition: all var(--transition);
+        }
+        .topbar-btn:hover { color: var(--text); border-color: var(--border-2); background: var(--surface-2); }
+
+        /* Sidebar */
+        .admin-sidebar {
+            grid-column: 1; grid-row: 2;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 0.75rem 0 1.5rem;
+            position: sticky; top: var(--header-h);
+            height: calc(100vh - var(--header-h));
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-2) transparent;
+            display: flex; flex-direction: column;
+        }
+        .admin-sidebar::-webkit-scrollbar { width: 3px; }
+        .admin-sidebar::-webkit-scrollbar-thumb { background: var(--border-2); }
+
+        .sidebar-section-label {
+            font-family: var(--font-mono); font-size: 0.5rem;
+            font-weight: 600; letter-spacing: 0.16em;
+            text-transform: uppercase; color: var(--muted-lt);
+            padding: 0.75rem 1rem 0.3rem;
+        }
+
+        .sidebar-link {
+            display: flex; align-items: center; gap: 0.625rem;
+            padding: 0.45rem 1rem;
+            font-family: var(--font-body); font-size: 0.8125rem;
+            color: var(--muted);
+            border-left: 2px solid transparent;
+            transition: all var(--transition);
+        }
+        .sidebar-link i { font-size: 1rem; width: 18px; flex-shrink: 0; }
+        .sidebar-link:hover { color: var(--text-2); background: var(--surface-2); border-left-color: var(--border-2); }
+        .sidebar-link.active { color: var(--text); background: var(--brand-pale); border-left-color: var(--brand); font-weight: 500; }
+
+        .sidebar-link .s-badge {
+            margin-left: auto;
+            font-family: var(--font-mono); font-size: 0.5rem; font-weight: 600;
+            padding: 0.125rem 0.4rem; border-radius: 100px;
+            background: var(--s-new-bg); color: var(--s-new);
+        }
+
+        .sidebar-link .s-badge.warn {
+            background: var(--s-draft-bg); color: var(--s-draft);
+        }
+
+        .sidebar-divider { height: 1px; background: var(--border); margin: 0.5rem 0; }
+        .sidebar-spacer { flex: 1; }
+        .sidebar-bottom {
+            padding: 0.75rem 0 0;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Main */
+        .admin-main {
+            grid-column: 2; grid-row: 2;
+            padding: 1.75rem 2rem;
+            min-width: 0; overflow-x: hidden;
+        }
+
+        /* Page header */
+        .page-header {
+            display: flex; align-items: flex-start;
+            justify-content: space-between; gap: 1rem;
+            margin-bottom: 1.5rem; flex-wrap: wrap;
+        }
+        .page-header-left { min-width: 0; }
+        .page-eyebrow {
+            font-family: var(--font-mono); font-size: 0.5625rem;
+            font-weight: 500; letter-spacing: 0.12em;
+            text-transform: uppercase; color: var(--brand); margin-bottom: 0.375rem;
+        }
+        .page-title {
+            font-family: var(--font-display); font-size: 1.375rem;
+            font-weight: 700; color: var(--text);
+            letter-spacing: -0.02em; line-height: 1.25; margin: 0;
+        }
+        .page-sub { font-size: 0.8125rem; color: var(--muted); margin-top: 0.3rem; }
+        .page-actions { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; gap: 0.375rem;
+            font-family: var(--font-body); font-size: 0.8125rem; font-weight: 500;
+            padding: 0.4375rem 0.875rem; border-radius: var(--radius);
+            transition: all var(--transition); cursor: pointer;
+            border: 1px solid transparent; white-space: nowrap;
+        }
+        .btn i { font-size: 0.9375rem; }
+        .btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+        .btn-primary:hover { background: var(--brand-hover); border-color: var(--brand-hover); }
+        .btn-secondary { background: var(--surface-2); color: var(--text-2); border-color: var(--border-2); }
+        .btn-secondary:hover { background: var(--border); color: var(--text); }
+        .btn-danger { background: rgba(248,81,73,0.1); color: var(--s-spam); border-color: rgba(248,81,73,0.25); }
+        .btn-danger:hover { background: rgba(248,81,73,0.2); }
+        .btn-ghost { background: transparent; color: var(--muted); border-color: var(--border); }
+        .btn-ghost:hover { color: var(--text-2); background: var(--surface-2); }
+        .btn-success { background: rgba(63,185,80,0.1); color: var(--s-published); border-color: rgba(63,185,80,0.25); }
+        .btn-success:hover { background: rgba(63,185,80,0.2); }
+        .btn-sm { font-size: 0.75rem; padding: 0.3rem 0.625rem; }
+        .btn-icon { padding: 0.375rem; width: 30px; height: 30px; justify-content: center; }
+
+        /* Status pills */
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            font-family: var(--font-mono); font-size: 0.5625rem;
+            font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+            padding: 0.2rem 0.5rem; border-radius: 100px;
+        }
+        .status-pill::before {
+            content: ''; width: 4px; height: 4px;
+            border-radius: 50%; background: currentColor; flex-shrink: 0;
+        }
+        .status-pill.published { background: var(--s-pub-bg); color: var(--s-published); }
+        .status-pill.draft     { background: var(--s-draft-bg); color: var(--s-draft); }
+        .status-pill.new       { background: var(--s-new-bg); color: var(--s-new); }
+        .status-pill.read      { background: var(--s-read-bg); color: var(--s-read); }
+        .status-pill.replied   { background: var(--s-replied-bg); color: var(--s-replied); }
+        .status-pill.archived  { background: var(--s-archived-bg); color: var(--s-archived); }
+        .status-pill.spam      { background: var(--s-spam-bg); color: var(--s-spam); }
+        .status-pill.active    { background: var(--s-pub-bg); color: var(--s-published); }
+        .status-pill.inactive  { background: var(--s-draft-bg); color: var(--s-draft); }
+
+        /* Category chip */
+        .cat-chip {
+            display: inline-block;
+            font-family: var(--font-mono); font-size: 0.5625rem;
+            font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+            padding: 0.175rem 0.45rem; border-radius: 3px;
+            background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
+        }
+
+        /* Card */
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+        .card-header {
+            padding: 0.875rem 1.25rem; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;
+        }
+        .card-header-title { font-family: var(--font-display); font-size: 0.9375rem; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+        .card-body { padding: 1.25rem; }
+
+        /* Flash messages */
+        .flash-list { margin-bottom: 1.25rem; position: relative; }
+        .flash {
+            display: flex; align-items: center; gap: 0.625rem;
+            padding: 0.75rem 1rem; border-radius: var(--radius);
+            font-size: 0.875rem; margin-bottom: 0.5rem; border: 1px solid;
+            position: relative;
+        }
+        .flash.success { background: rgba(63,185,80,0.08); border-color: rgba(63,185,80,0.2); color: #3FB950; }
+        .flash.error   { background: rgba(248,81,73,0.08); border-color: rgba(248,81,73,0.2); color: var(--s-spam); }
+        .flash.info    { background: var(--brand-pale); border-color: rgba(37,99,235,0.2); color: var(--brand); }
+        
+        .flash-dismiss {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: currentColor;
+            cursor: pointer;
+            font-size: 1.125rem;
+            padding: 0 0.25rem;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .flash-dismiss:hover { opacity: 1; }
+
+        /* Fields */
+        .field-input, .field-select, .field-textarea {
+            width: 100%; background: var(--bg); border: 1px solid var(--border-2);
+            border-radius: var(--radius); color: var(--text);
+            font-family: var(--font-body); font-size: 0.875rem;
+            padding: 0.5rem 0.75rem; outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition);
+            appearance: none;
+        }
+        .field-input::placeholder, .field-textarea::placeholder { color: var(--muted-lt); }
+        .field-input:focus, .field-select:focus, .field-textarea:focus {
+            border-color: var(--brand); box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+        }
+        .field-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237D8590' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 0.625rem center;
+            padding-right: 2rem; cursor: pointer;
+        }
+        .field-select option { background: var(--surface); }
+        .field-label { font-size: 0.75rem; font-weight: 500; color: var(--text-2); margin-bottom: 0.375rem; display: block; }
+        .field-group { margin-bottom: 1rem; }
+
+        /* Breadcrumb */
+        .breadcrumb { display: flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; color: var(--muted); margin-bottom: 1.25rem; }
+        .breadcrumb a { color: var(--muted); transition: color var(--transition); }
+        .breadcrumb a:hover { color: var(--text-2); }
+        .breadcrumb span { color: var(--muted-lt); font-size: 0.75rem; }
+        .breadcrumb .current { color: var(--text-2); }
+
+        /* Responsive */
+        @media (max-width: 960px) {
+            .admin-shell { grid-template-columns: 1fr; grid-template-rows: var(--header-h) auto 1fr; }
+            .admin-sidebar {
+                grid-column: 1; grid-row: 2;
+                flex-direction: row; height: auto;
+                position: static; padding: 0;
+                overflow-x: auto; border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+            .sidebar-section-label, .sidebar-divider, .sidebar-spacer, .sidebar-bottom { display: none; }
+            .sidebar-link { padding: 0.625rem 0.875rem; border-left: none; border-bottom: 2px solid transparent; flex-shrink: 0; }
+            .sidebar-link.active { border-left: none; border-bottom-color: var(--brand); background: transparent; }
+            .admin-main { grid-column: 1; grid-row: 3; padding: 1.25rem 1rem; }
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    {% block extra_styles %}{% endblock %}
+</head>
+<body>
+<div class="admin-shell">
+
+    <!-- Top bar -->
+    <header class="admin-topbar">
+        <div class="topbar-left">
+            <a href="{% url 'lab:dashboard_home' %}" class="topbar-logo">
+                <div><img src="{% static 'favicon_io/favicon-32x32.png' %}" alt="Logo"></div>
+                <span class="topbar-logo-name">StephensLab</span>
+            </a>
+            <div class="topbar-sep"></div>
+            <span class="topbar-label">Dashboard</span>
+        </div>
+        <div class="topbar-right">
+            <a href="/" target="_blank" class="topbar-btn">
+                <i class='bx bx-link-external'></i> View site
+            </a>
+            <div class="topbar-user">
+                <div class="topbar-avatar">
+                    {% if request.user.first_name %}{{ request.user.first_name.0 }}{% else %}S{% endif %}
+                </div>
+                <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+            </div>
+            <a href="{% url 'lab:logout' %}" class="topbar-btn">
+                <i class='bx bx-log-out'></i> Sign out
+            </a>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" role="navigation" aria-label="Dashboard navigation">
+
+        <p class="sidebar-section-label">Overview</p>
+        <a href="{% url 'lab:dashboard_home' %}" class="sidebar-link {% block nav_home %}{% endblock %}">
+            <i class='bx bx-home-alt'></i> Overview
+        </a>
+
+        <div class="sidebar-divider"></div>
+
+        <p class="sidebar-section-label">Blog</p>
+        <a href="{% url 'lab:dashboard_post_list' %}" class="sidebar-link {% block nav_posts %}{% endblock %}">
+            <i class='bx bx-edit-alt'></i> Posts
+            {% if draft_count %}<span class="s-badge warn">{{ draft_count }}</span>{% endif %}
+        </a>
+        <a href="{% url 'lab:post_create' %}" class="sidebar-link">
+            <i class='bx bx-plus-circle'></i> New Post
+        </a>
+        <a href="{% url 'lab:category_list' %}" class="sidebar-link {% block nav_categories %}{% endblock %}">
+            <i class='bx bx-folder'></i> Categories
+        </a>
+        <a href="{% url 'lab:tag_list' %}" class="sidebar-link {% block nav_tags %}{% endblock %}">
+            <i class='bx bx-tag'></i> Tags
+        </a>
+
+        <div class="sidebar-divider"></div>
+
+        <p class="sidebar-section-label">Audience</p>
+        <a href="{% url 'lab:dashboard_subscribers' %}" class="sidebar-link {% block nav_subscribers %}{% endblock %}">
+            <i class='bx bx-mail-send'></i> Subscribers
+        </a>
+
+        <div class="sidebar-divider"></div>
+
+        <p class="sidebar-section-label">Contact</p>
+        <a href="{% url 'contact:contact_messages_list' %}" class="sidebar-link {% block nav_messages %}{% endblock %}">
+            <i class='bx bx-message-dots'></i> Messages
+            {% if new_message_count %}<span class="s-badge">{{ new_message_count }}</span>{% endif %}
+        </a>
+
+        <div class="sidebar-spacer"></div>
+
+        <div class="sidebar-bottom">
+            <a href="/admin/" class="sidebar-link">
+                <i class='bx bx-shield-quarter'></i> Django admin
+            </a>
+            <a href="{% url 'lab:logout' %}" class="sidebar-link">
+                <i class='bx bx-log-out'></i> Sign out
+            </a>
+        </div>
+
+    </aside>
+
+    <!-- Main -->
+    <main class="admin-main" role="main">
+        
+        <!-- Flash Messages with auto-dismiss -->
+        {% comment %}
+            {% if messages %}
+            <div class="flash-list" id="flash-messages">
+                {% for message in messages %}
+                <div class="flash {% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}" data-dismiss="3000">
+                    <i class="bx {% if message.tags == 'success' %}bx-check-circle{% elif message.tags == 'error' %}bx-error-circle{% else %}bx-info-circle{% endif %}"></i>
+                    {{ message }}
+                    <button class="flash-dismiss" onclick="this.parentElement.remove()" aria-label="Dismiss">×</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endcomment %} 
+
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+<!-- Auto-dismiss flash messages script -->
+<script>
+(function() {
+    // Auto-dismiss flash messages after specified duration
+    var flashes = document.querySelectorAll('.flash[data-dismiss]');
+    flashes.forEach(function(flash) {
+        var duration = parseInt(flash.getAttribute('data-dismiss')) || 3000;
+        setTimeout(function() {
+            flash.style.opacity = '0';
+            flash.style.transition = 'opacity 0.3s ease';
+            setTimeout(function() {
+                if (flash.parentElement) flash.remove();
+            }, 300);
+        }, duration);
+    });
+})();
+</script>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

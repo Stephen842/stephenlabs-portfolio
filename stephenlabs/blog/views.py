@@ -4,9 +4,9 @@ from django.http import Http404
 from django.db.models import Q
 from django.contrib import messages
 
-from .models import Post, Category, Tag, Subscriber
-from .forms import PostForm
-from .utils import filter_posts, subscribe_email
+from blog.models import Post, Category, Tag, Subscriber
+from blog.forms import PostForm
+from blog.utils import filter_posts, subscribe_email
 
 
 @login_required
@@ -25,12 +25,12 @@ def post_create(request):
     if request.method == 'POST' and 'footer_email' in request.POST:
         email = request.POST.get('footer_email')
         subscribe_email(request, email)
-        messages.success(request, "Thank you! You've successfully subscribed to the StephenLabs newsletter.")
+        messages.success(request, "Thank you! You've successfully subscribed to the StephensLab newsletter.")
 
 
     context = {
         'form': form,
-        'title': 'Create New Article · StephenLabs'
+        'title': 'Create New Article · StephensLab'
     }
     return render(request, 'pages/post_form.html', context)
 
@@ -39,7 +39,7 @@ def post_list(request):
     if request.method == 'POST' and 'footer_email' in request.POST:
         email = request.POST.get('footer_email')
         subscribe_email(request, email)
-        messages.success(request, "Thank you! You've successfully subscribed to the StephenLabs newsletter.")
+        messages.success(request, "Thank you! You've successfully subscribed to the StephensLab newsletter.")
 
     base_queryset = Post.objects.filter(
         status=Post.Status.PUBLISHED
@@ -54,7 +54,7 @@ def post_list(request):
         'selected_category': request.GET.get('category'),
         'selected_tag': request.GET.get('tag'),
         'query': request.GET.get('q'),
-        'title': 'Insights & Articles · StephenLabs'
+        'title': 'Insights & Articles · StephensLab'
     }
     return render(request, 'pages/post_list.html', context)
 
@@ -65,7 +65,7 @@ def post_detail(request, slug):
     if request.method == 'POST' and 'footer_email' in request.POST:
         email = request.POST.get('footer_email')
         subscribe_email(request, email)
-        messages.success(request, "Thank you! You've successfully subscribed to the StephenLabs newsletter.")
+        messages.success(request, "Thank you! You've successfully subscribed to the StephensLab newsletter.")
 
 
     # Draft protection
@@ -93,7 +93,7 @@ def post_edit(request, slug):
     if request.method == 'POST' and 'footer_email' in request.POST:
         email = request.POST.get('footer_email')
         subscribe_email(request, email)
-        messages.success(request, "Thank you! You've successfully subscribed to the StephenLabs newsletter.")
+        messages.success(request, "Thank you! You've successfully subscribed to the StephensLab newsletter.")
 
 
     if post.author != request.user:
@@ -110,7 +110,7 @@ def post_edit(request, slug):
 
     context = {
         'form': form,
-        'title': f'Edit: {post.title} · StephenLabs'
+        'title': f'Edit: {post.title} · StephensLab'
     }
     return render(request, 'pages/post_form.html', context)
 
@@ -124,7 +124,7 @@ def my_drafts(request):
 
     context = {
         'posts': posts,
-        'title': 'My Drafts · StephenLabs'
+        'title': 'My Drafts · StephensLab'
     }
     return render(request, 'pages/my_drafts.html', context)
 
@@ -140,7 +140,7 @@ def unsubscribe(request, subscriber_id):
     subscriber.save()
 
     # Show a success message
-    messages.success(request, f"You have been unsubscribed from StephenLabs newsletter.")
+    messages.success(request, f"You have been unsubscribed from StephensLab newsletter.")
 
     # Redirect to home page
     return redirect('post_list')
@@ -150,7 +150,7 @@ def privacy_policy(request):
     if request.method == 'POST' and 'footer_email' in request.POST:
         email = request.POST.get('footer_email')
         subscribe_email(request, email)
-        messages.success(request, "Thank you! You've successfully subscribed to the StephenLabs newsletter.")
+        messages.success(request, "Thank you! You've successfully subscribed to the StephensLab newsletter.")
 
     base_queryset = Post.objects.filter(
         status=Post.Status.PUBLISHED
@@ -165,7 +165,7 @@ def privacy_policy(request):
         'selected_category': request.GET.get('category'),
         'selected_tag': request.GET.get('tag'),
         'query': request.GET.get('q'),
-        'title': 'Privacy Policy · StephenLabs',
+        'title': 'Privacy Policy · StephensLab',
     }
     return render(request, 'pages/privacy_policy.html', context)
 
@@ -173,7 +173,7 @@ def terms_of_service(request):
     if request.method == 'POST' and 'footer_email' in request.POST:
         email = request.POST.get('footer_email')
         subscribe_email(request, email)
-        messages.success(request, "Thank you! You've successfully subscribed to the StephenLabs newsletter.")
+        messages.success(request, "Thank you! You've successfully subscribed to the StephensLab newsletter.")
 
     base_queryset = Post.objects.filter(
         status=Post.Status.PUBLISHED
@@ -188,6 +188,30 @@ def terms_of_service(request):
         'selected_category': request.GET.get('category'),
         'selected_tag': request.GET.get('tag'),
         'query': request.GET.get('q'),
-        'title': 'Terms of Service · StephenLabs',
+        'title': 'Terms of Service · StephensLab',
     }
     return render(request, 'pages/terms_of_service.html', context)
+
+
+def cookies(request):
+    if request.method == 'POST' and 'footer_email' in request.POST:
+        email = request.POST.get('footer_email')
+        subscribe_email(request, email)
+        messages.success(request, "Thank you! You've successfully subscribed to the StephensLab newsletter.")
+
+    base_queryset = Post.objects.filter(
+        status=Post.Status.PUBLISHED
+    ).select_related('category', 'author').prefetch_related('tags')
+
+    posts = filter_posts(request, base_queryset)
+
+    context={
+        'posts': posts,
+        'categories': Category.objects.all(),
+        'tags': Tag.objects.all(),
+        'selected_category': request.GET.get('category'),
+        'selected_tag': request.GET.get('tag'),
+        'query': request.GET.get('q'),
+        'title': 'Cookies Settings · StephensLab',
+    }
+    return render(request, 'pages/cookies_setting.html', context)

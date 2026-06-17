@@ -4,6 +4,7 @@ from django.utils.text import slugify
 from django.utils import timezone
 import math
 from django_ckeditor_5.fields import CKEditor5Field
+import os
 
 
 class Category(models.Model):
@@ -31,6 +32,13 @@ class Tag(models.Model):
         return self.name
     
 
+def post_image_path(instance, filename):
+    """Generate a unique path for uploaded post images"""
+    ext = filename.split('.')[-1]
+    filename = f"{slugify(instance.title)}-{timezone.now().strftime('%Y%m%d%H%M%S')}.{ext}"
+    return os.path.join('posts', filename)
+
+
 class Post(models.Model):
 
     class Status(models.TextChoices):
@@ -41,7 +49,7 @@ class Post(models.Model):
     slug = models.SlugField(max_length=270, unique=True)
     excerpt = models.TextField(help_text='Short summary shown on blog listing pages')
     content = CKEditor5Field('Content', config_name='default')
-    featured_image = models.ImageField(upload_to='blog/images/', blank=True, null=True)
+    featured_image = models.ImageField(upload_to=post_image_path, blank=True, null=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='posts')
     tags = models.ManyToManyField(Tag, blank=True, related_name='posts')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='blog_posts')

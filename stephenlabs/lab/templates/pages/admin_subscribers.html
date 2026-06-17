@@ -1,0 +1,217 @@
+{% extends "pages/admin_base.html" %}
+{% block page_title %}Subscribers{% endblock %}
+{% block nav_subscribers %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .stats-strip { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .strip-stat {
+        display: flex; align-items: center; gap: 0.5rem;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 0.5rem 0.875rem;
+        font-size: 0.8125rem; color: var(--muted); cursor: pointer;
+        transition: all var(--transition); text-decoration: none;
+    }
+    .strip-stat:hover { border-color: var(--border-2); color: var(--text-2); }
+    .strip-stat.active-filter { border-color: var(--brand); background: var(--brand-pale); color: var(--text); }
+    .strip-stat-count { font-family: var(--font-display); font-weight: 700; color: var(--text); font-size: 0.9375rem; }
+
+    .filter-bar {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 0.75rem 1rem;
+        display: flex; gap: 0.625rem; align-items: center;
+        flex-wrap: wrap; margin-bottom: 1rem;
+    }
+    .search-wrap { position: relative; flex-grow: 1; max-width: 320px; }
+    .search-wrap i { position: absolute; left: 0.625rem; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .search-wrap .field-input { padding-left: 2rem; font-size: 0.8125rem; }
+    .filter-bar .field-select { width: auto; min-width: 140px; font-size: 0.8125rem; padding: 0.4rem 2rem 0.4rem 0.75rem; }
+    .filter-right { margin-left: auto; font-family: var(--font-mono); font-size: 0.625rem; color: var(--muted); }
+
+    .subs-table-wrap {
+        background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden;
+    }
+    .subs-table { width: 100%; border-collapse: collapse; }
+    .subs-table thead tr { background: var(--surface-2); border-bottom: 1px solid var(--border); }
+    .subs-table thead th {
+        font-family: var(--font-mono); font-size: 0.5625rem; font-weight: 500;
+        letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+        padding: 0.625rem 1rem; text-align: left; white-space: nowrap;
+    }
+    .subs-table tbody tr { border-bottom: 1px solid var(--border); transition: background var(--transition); }
+    .subs-table tbody tr:last-child { border-bottom: none; }
+    .subs-table tbody tr:hover { background: var(--surface-2); }
+    .subs-table tbody td { padding: 0.75rem 1rem; font-size: 0.8125rem; color: var(--text-2); vertical-align: middle; }
+
+    .row-actions { display: flex; gap: 0.375rem; align-items: center; }
+    .delete-form { display: inline; }
+    .subs-table tbody tr:hover .row-actions { opacity: 1; }
+
+    .toggle-active-btn {
+        display: inline-flex; align-items: center;
+        font-family: var(--font-mono); font-size: 0.5625rem; font-weight: 600;
+        letter-spacing: 0.06em; text-transform: uppercase;
+        padding: 0.2rem 0.5rem; border-radius: 100px;
+        border: none; cursor: pointer; transition: all var(--transition);
+    }
+    .toggle-active-btn.active { background: rgba(63,185,80,0.12); color: #3FB950; }
+    .toggle-active-btn.active:hover { background: rgba(210,153,34,0.12); color: #D29922; }
+    .toggle-active-btn.inactive { background: rgba(210,153,34,0.12); color: #D29922; }
+    .toggle-active-btn.inactive:hover { background: rgba(63,185,80,0.12); color: #3FB950; }
+
+    .pagination {
+        display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+        padding: 0.875rem 1rem; border-top: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .pagination-info { font-family: var(--font-mono); font-size: 0.625rem; color: var(--muted); }
+    .pagination-links { display: flex; gap: 0.25rem; }
+    .page-link {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 30px; height: 30px; padding: 0 0.5rem;
+        font-size: 0.8125rem; color: var(--muted);
+        border: 1px solid var(--border); border-radius: var(--radius); transition: all var(--transition);
+    }
+    .page-link:hover { color: var(--text); border-color: var(--border-2); background: var(--surface-2); }
+    .page-link.current { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .page-link.disabled { opacity: 0.35; pointer-events: none; }
+
+    .empty-state { padding: 4rem 1.5rem; text-align: center; }
+    .empty-state i { font-size: 2.5rem; color: var(--muted-lt); display: block; margin-bottom: 0.875rem; }
+    .empty-state p { font-size: 0.875rem; color: var(--muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="page-eyebrow">Audience</p>
+        <h1 class="page-title">Subscribers</h1>
+        <p class="page-sub">Newsletter subscriber list</p>
+    </div>
+</div>
+
+<!-- Stats strip -->
+<div class="stats-strip">
+    <a href="?active=" class="strip-stat {% if filter_active == '' %}active-filter{% endif %}">
+        <span class="strip-stat-count">{{ total_count }}</span> All
+    </a>
+    <a href="?active=1" class="strip-stat {% if filter_active == '1' %}active-filter{% endif %}">
+        <span class="strip-stat-count" style="color:#3FB950;">{{ active_count }}</span> Active
+    </a>
+    <a href="?active=0" class="strip-stat {% if filter_active == '0' %}active-filter{% endif %}">
+        <span class="strip-stat-count" style="color:#D29922;">{{ inactive_count }}</span> Unsubscribed
+    </a>
+</div>
+
+<!-- Filter bar -->
+<form method="get" class="filter-bar">
+    <div class="search-wrap">
+        <i class='bx bx-search'></i>
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search email…" class="field-input" autocomplete="off">
+    </div>
+    <select name="active" class="field-select">
+        <option value="">All</option>
+        <option value="1" {% if filter_active == '1' %}selected{% endif %}>Active only</option>
+        <option value="0" {% if filter_active == '0' %}selected{% endif %}>Unsubscribed only</option>
+    </select>
+    <button type="submit" class="btn btn-secondary btn-sm"><i class='bx bx-filter-alt'></i> Filter</button>
+    {% if search_query or filter_active != '' %}
+    <a href="{% url 'lab:dashboard_subscribers' %}" class="btn btn-ghost btn-sm">Clear</a>
+    {% endif %}
+    <span class="filter-right">{{ subscribers.paginator.count }} result{{ subscribers.paginator.count|pluralize }}</span>
+</form>
+
+<!-- Table -->
+<div class="subs-table-wrap">
+    {% if subscribers.object_list %}
+    <table class="subs-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Subscribed</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in subscribers %}
+            <tr id="sub-row-{{ sub.id }}">
+                <td style="font-family:var(--font-mono);font-size:0.625rem;color:var(--muted-lt);">{{ forloop.counter }}</span></span></span></span></td>
+                <td style="font-family:var(--font-mono);font-size:0.8125rem;">{{ sub.email }}</span></span></span></span></td>
+                <td>
+                    <button
+                        class="toggle-active-btn {% if sub.is_active %}active{% else %}inactive{% endif %}"
+                        onclick="toggleSubscriber({{ sub.id }}, this)"
+                        title="Toggle subscription status"
+                    >{% if sub.is_active %}Active{% else %}Unsubscribed{% endif %}</button>
+                </td>
+                <td style="font-family:var(--font-mono);font-size:0.625rem;color:var(--muted);">{{ sub.created_at|date:"M d, Y" }}</span></span></span></span></td>
+                <td>
+                    <div class="row-actions">
+                        <form method="post" action="{% url 'lab:dashboard_subscriber_delete' sub.id %}" class="delete-form" onsubmit="return confirm('Permanently delete subscriber {{ sub.email }}?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-ghost btn-sm btn-icon" title="Delete subscriber">
+                                <i class='bx bx-trash' style="color:var(--s-spam);"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if subscribers.has_other_pages %}
+    <div class="pagination">
+        <span class="pagination-info">Page {{ subscribers.number }} of {{ subscribers.paginator.num_pages }}</span>
+        <div class="pagination-links">
+            {% if subscribers.has_previous %}
+            <a href="?page={{ subscribers.previous_page_number }}&q={{ search_query }}&active={{ filter_active }}" class="page-link"><i class='bx bx-chevron-left'></i></a>
+            {% else %}<span class="page-link disabled"><i class='bx bx-chevron-left'></i></span>{% endif %}
+            {% for num in subscribers.paginator.page_range %}
+                {% if subscribers.number == num %}<span class="page-link current">{{ num }}</span>
+                {% elif num > subscribers.number|add:'-3' and num < subscribers.number|add:'3' %}
+                <a href="?page={{ num }}&q={{ search_query }}&active={{ filter_active }}" class="page-link">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            {% if subscribers.has_next %}
+            <a href="?page={{ subscribers.next_page_number }}&q={{ search_query }}&active={{ filter_active }}" class="page-link"><i class='bx bx-chevron-right'></i></a>
+            {% else %}<span class="page-link disabled"><i class='bx bx-chevron-right'></i></span>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <i class='bx bx-mail-send'></i>
+        <p>No subscribers yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+var CSRF = '{{ csrf_token }}';
+
+function toggleSubscriber(id, btn) {
+    btn.disabled = true;
+    fetch('{% url "lab:dashboard_subscriber_toggle" 0 %}'.replace('0', id), {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            btn.className = 'toggle-active-btn ' + (data.is_active ? 'active' : 'inactive');
+            btn.textContent = data.is_active ? 'Active' : 'Unsubscribed';
+        }
+        btn.disabled = false;
+    })
+    .catch(function() { btn.disabled = false; });
+}
+</script>
+{% endblock %}

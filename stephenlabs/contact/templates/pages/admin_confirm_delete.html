@@ -1,0 +1,195 @@
+{% extends "pages/admin_base.html" %}
+{% block page_title %}Delete Message{% endblock %}
+{% block nav_messages %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .delete-wrap {
+        max-width: 540px;
+        margin: 0 auto;
+        padding-top: 2rem;
+    }
+
+    .delete-card {
+        background: var(--surface);
+        border: 1px solid rgba(248,81,73,0.25);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .delete-card-header {
+        padding: 1.125rem 1.5rem;
+        background: rgba(248,81,73,0.06);
+        border-bottom: 1px solid rgba(248,81,73,0.15);
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+    }
+
+    .delete-header-icon {
+        width: 30px;
+        height: 30px;
+        background: rgba(248,81,73,0.12);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--s-spam);
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .delete-header-title {
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: -0.01em;
+    }
+
+    .delete-card-body { padding: 1.5rem; }
+
+    .delete-warning {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--s-spam);
+        margin-bottom: 0.875rem;
+    }
+
+    .delete-message-preview {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.125rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .dmp-row {
+        display: flex;
+        gap: 0.875rem;
+        align-items: baseline;
+        padding: 0.3rem 0;
+        font-size: 0.8125rem;
+    }
+
+    .dmp-key {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        width: 68px;
+        flex-shrink: 0;
+    }
+
+    .dmp-val { color: var(--text-2); }
+
+    .delete-note {
+        font-size: 0.8125rem;
+        color: var(--muted);
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+        padding: 0.875rem 1rem;
+        background: rgba(248,81,73,0.05);
+        border-left: 3px solid rgba(248,81,73,0.3);
+        border-radius: 0 var(--radius) var(--radius) 0;
+    }
+
+    .delete-actions {
+        display: flex;
+        gap: 0.625rem;
+        justify-content: flex-end;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'contact:contact_messages_list' %}">Messages</a>
+    <span>/</span>
+    <a href="{% url 'contact:contact_message_detail' message.id %}">{{ message.name }}</a>
+    <span>/</span>
+    <span class="current">Delete</span>
+</nav>
+
+<div class="delete-wrap">
+    <div class="delete-card">
+
+        <div class="delete-card-header">
+            <div class="delete-header-icon">
+                <i class='bx bx-trash'></i>
+            </div>
+            <span class="delete-header-title">Delete message</span>
+        </div>
+
+        <div class="delete-card-body">
+            <p class="delete-warning">Irreversible action</p>
+
+            <p style="font-size:0.9375rem;color:var(--text-2);line-height:1.65;margin-bottom:1.25rem;">
+                You are about to permanently delete the following message. Once deleted, it cannot be recovered.
+            </p>
+
+            <!-- Message preview -->
+            <div class="delete-message-preview">
+                <div class="dmp-row">
+                    <span class="dmp-key">From</span>
+                    <span class="dmp-val">{{ message.name }}</span>
+                </div>
+                <div class="dmp-row">
+                    <span class="dmp-key">Email</span>
+                    <span class="dmp-val" style="font-family:var(--font-mono);font-size:0.75rem;">{{ message.email }}</span>
+                </div>
+                <div class="dmp-row">
+                    <span class="dmp-key">Subject</span>
+                    <span class="dmp-val">{{ message.subject|truncatechars:60 }}</span>
+                </div>
+                <div class="dmp-row">
+                    <span class="dmp-key">Category</span>
+                    <span class="dmp-val"><span class="cat-chip">{{ message.get_subject_category_display }}</span></span>
+                </div>
+                <div class="dmp-row">
+                    <span class="dmp-key">Status</span>
+                    <span class="dmp-val"><span class="status-pill {{ message.status }}">{{ message.get_status_display }}</span></span>
+                </div>
+                <div class="dmp-row">
+                    <span class="dmp-key">Received</span>
+                    <span class="dmp-val" style="font-family:var(--font-mono);font-size:0.6875rem;">{{ message.created_at|date:"M d, Y \a\t H:i" }}</span>
+                </div>
+            </div>
+
+            <div class="delete-note">
+                This will also permanently remove any admin notes, metadata, and reply history associated with this message. This action cannot be undone.
+            </div>
+
+            <div class="delete-actions">
+                <a href="{% url 'contact:contact_message_detail' message.id %}" class="btn btn-ghost">
+                    <i class='bx bx-x'></i> Cancel
+                </a>
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" id="confirm-delete-btn">
+                        <i class='bx bx-trash'></i> Delete permanently
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('confirm-delete-btn').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<i class="bx bx-loader-alt" style="animation:spin 0.7s linear infinite;"></i> Deleting…';
+});
+</script>
+<style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "pages/admin_base.html" %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_taxonomy %}active{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumb">
+    <a href="{% url 'lab:tag_list' %}">Tags</a>
+    <span>/</span>
+    <span class="current">{{ title }}</span>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="page-eyebrow">Blog</p>
+        <h1 class="page-title">{{ title }}</h1>
+        <p class="page-sub">{% if tag %}Edit existing tag{% else %}Add a new tag{% endif %}</p>
+    </div>
+</div>
+
+<div class="card" style="max-width: 600px;">
+    <div class="card-header">
+        <span class="card-header-title">Tag Details</span>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="field-group">
+                <label class="field-label" for="{{ form.name.id_for_label }}">Name <span style="color:var(--s-spam);">*</span></label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <p style="font-size:0.75rem;color:var(--s-spam);margin-top:0.25rem;">{{ form.name.errors.0 }}</p>
+                {% endif %}
+                <p style="font-size:0.6875rem;color:var(--muted);margin-top:0.25rem;">Display name for the tag</p>
+            </div>
+            
+            <div class="field-group">
+                <label class="field-label" for="{{ form.slug.id_for_label }}">Slug</label>
+                {{ form.slug }}
+                {% if form.slug.errors %}
+                <p style="font-size:0.75rem;color:var(--s-spam);margin-top:0.25rem;">{{ form.slug.errors.0 }}</p>
+                {% endif %}
+                <p style="font-size:0.6875rem;color:var(--muted);margin-top:0.25rem;">URL-friendly version of the name. Leave blank to auto-generate.</p>
+            </div>
+            
+            <div style="display:flex;gap:0.625rem;justify-content:flex-end;margin-top:1.5rem;">
+                <a href="{% url 'lab:tag_list' %}" class="btn btn-ghost">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class='bx bx-save'></i> Save Tag
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Auto-generate slug from name
+var nameInput = document.getElementById('{{ form.name.id_for_label }}');
+var slugInput = document.getElementById('{{ form.slug.id_for_label }}');
+
+if (nameInput && slugInput) {
+    nameInput.addEventListener('blur', function() {
+        if (!slugInput.value || slugInput.value === '') {
+            var slug = this.value.toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-');
+            slugInput.value = slug;
+        }
+    });
+}
+</script>
+{% endblock %}

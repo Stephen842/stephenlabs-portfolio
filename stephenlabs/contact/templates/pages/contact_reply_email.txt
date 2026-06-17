@@ -1,0 +1,19 @@
+Dear {{ name }},
+
+Thank you for reaching out to StephensLab. We appreciate your patience and attention.
+
+Our Response:
+--------------
+{{ reply_body }}
+--------------
+
+If you have any further questions, don't hesitate to reply to this email. We're always happy to help.
+
+Depth over hype. Learn deeply. Build boldly.
+
+Best regards,
+Chinazo
+Customer Support, StephensLab
+
+---
+Visit us: {{ homepage_url }}

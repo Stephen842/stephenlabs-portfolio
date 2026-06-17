@@ -1,164 +1,845 @@
 {% extends "pages/base.html" %}
 
 {% block content %}
-<section class="bg-gray-50 py-16">
-    <div class="max-w-5xl mx-auto px-6 md:px-0 flex gap-12">
 
-        <!-- Sidebar TOC -->
-        <aside class="hidden lg:block w-64 sticky top-20 h-[calc(100vh-5rem)] border-r border-gray-200 pr-6">
-            <nav class="space-y-2 text-sm text-gray-700">
-                <a href="#introduction" class="block py-1 hover:text-blue-600">Introduction</a>
-                <a href="#acceptance" class="block py-1 hover:text-blue-600">1. Acceptance of Terms</a>
-                <a href="#eligibility" class="block py-1 hover:text-blue-600">2. Eligibility</a>
-                <a href="#user-responsibilities" class="block py-1 hover:text-blue-600">3. User Responsibilities</a>
-                <a href="#account-termination" class="block py-1 hover:text-blue-600">4. Account Termination</a>
-                <a href="#content" class="block py-1 hover:text-blue-600">5. Content and Intellectual Property</a>
-                <a href="#prohibited-activities" class="block py-1 hover:text-blue-600">6. Prohibited Activities</a>
-                <a href="#disclaimer" class="block py-1 hover:text-blue-600">7. Disclaimer of Warranties</a>
-                <a href="#limitation-of-liability" class="block py-1 hover:text-blue-600">8. Limitation of Liability</a>
-                <a href="#indemnification" class="block py-1 hover:text-blue-600">9. Indemnification</a>
-                <a href="#changes" class="block py-1 hover:text-blue-600">10. Changes to Terms</a>
-                <a href="#governing-law" class="block py-1 hover:text-blue-600">11. Governing Law</a>
-                <a href="#contact" class="block py-1 hover:text-blue-600">12. Contact Information</a>
-            </nav>
-        </aside>
+<style>
+    .tos-wrap {
+        width: 100%;
+        padding: 2rem 0 4rem;
+    }
 
-        <!-- Main Content -->
-        <div class="flex-1 space-y-6 text-gray-700 leading-relaxed">
+    @media (min-width: 768px) {
+        .tos-wrap {
+            padding: 3rem 0 5rem;
+        }
+    }
 
-            <!-- Page Header -->
-            <header class="mb-12 text-center lg:text-left">
-                <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
-                    Terms of Service
-                </h1>
-                <p class="text-gray-500 text-sm">
-                    Last updated: January 2026
+    .tos-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        align-items: start;
+    }
+
+    @media (min-width: 1024px) {
+        .tos-grid {
+            grid-template-columns: 280px 1fr;
+            gap: 3.5rem;
+        }
+    }
+
+    /* Sidebar */
+    .tos-sidebar {
+        position: static;
+    }
+
+    @media (min-width: 1024px) {
+        .tos-sidebar {
+            position: sticky;
+            top: 100px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--rule) transparent;
+            padding-right: 0.5rem;
+        }
+        .tos-sidebar::-webkit-scrollbar { width: 4px; }
+        .tos-sidebar::-webkit-scrollbar-track { background: transparent; }
+        .tos-sidebar::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 4px; }
+    }
+
+    .tos-toc-label {
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .tos-toc-label span {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    .tos-toc-link {
+        display: block;
+        padding: 0.4rem 0.75rem;
+        margin-bottom: 0.125rem;
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        color: var(--muted);
+        border-left: 2px solid transparent;
+        border-radius: 0 6px 6px 0;
+        text-decoration: none;
+        transition: all 150ms ease;
+    }
+
+    .tos-toc-link:hover {
+        color: var(--brand);
+        background: var(--brand-pale);
+        border-left-color: rgba(37,99,235,0.3);
+    }
+
+    .tos-toc-link.active {
+        color: var(--brand);
+        border-left-color: var(--brand);
+        background: var(--brand-pale);
+        font-weight: 500;
+    }
+
+    .tos-toc-link.is-sub {
+        padding-left: 1.5rem;
+        font-size: 0.75rem;
+    }
+
+    /* Article */
+    .tos-article {
+        min-width: 0;
+    }
+
+    /* Header */
+    .tos-header {
+        margin-bottom: 2.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .tos-header-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 1rem;
+    }
+
+    .tos-header-eyebrow::before {
+        content: '';
+        display: inline-block;
+        width: 20px;
+        height: 2px;
+        background: var(--brand);
+    }
+
+    .tos-title {
+        font-family: var(--font-display);
+        font-size: clamp(2rem, 5vw, 3rem);
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+        margin: 0 0 1rem 0;
+    }
+
+    .tos-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .tos-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        color: var(--muted);
+    }
+
+    .tos-meta-item strong {
+        color: var(--ink-muted);
+        font-weight: 600;
+    }
+
+    /* Agreement callout */
+    .tos-agreement {
+        background: var(--brand-pale);
+        border-left: 4px solid var(--brand);
+        border-radius: 0 12px 12px 0;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .tos-agreement-label {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 0.75rem;
+    }
+
+    .tos-agreement p {
+        font-family: var(--font-body);
+        font-size: 0.9375rem;
+        line-height: 1.7;
+        color: var(--ink-muted);
+        margin: 0;
+    }
+
+    .tos-agreement strong {
+        color: var(--ink);
+        font-weight: 600;
+    }
+
+    /* Preamble */
+    .tos-preamble {
+        font-family: var(--font-body);
+        font-size: 1rem;
+        line-height: 1.75;
+        color: var(--ink-muted);
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--rule-lt);
+    }
+
+    /* Sections */
+    .tos-section {
+        scroll-margin-top: 100px;
+        margin-bottom: 2.5rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid var(--rule-lt);
+    }
+
+    .tos-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .tos-section-header {
+        display: flex;
+        align-items: baseline;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .tos-section-num {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        color: var(--brand);
+        letter-spacing: 0.08em;
+        flex-shrink: 0;
+        background: var(--brand-pale);
+        padding: 0.125rem 0.5rem;
+        border-radius: 4px;
+    }
+
+    .tos-section-title {
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.02em;
+        line-height: 1.3;
+        margin: 0;
+    }
+
+    .tos-section p {
+        font-family: var(--font-body);
+        font-size: 0.9375rem;
+        line-height: 1.75;
+        color: var(--ink-muted);
+        margin: 0 0 1rem 0;
+    }
+
+    .tos-section p:last-child {
+        margin-bottom: 0;
+    }
+
+    .tos-section p strong {
+        color: var(--ink);
+        font-weight: 600;
+    }
+
+    .tos-section a {
+        color: var(--brand);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        text-decoration-thickness: 1px;
+        transition: opacity 150ms;
+    }
+
+    .tos-section a:hover {
+        opacity: 0.8;
+    }
+
+    .tos-subhead {
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+        margin: 1.5rem 0 0.75rem 0;
+    }
+
+    /* Lists */
+    .tos-list {
+        list-style: none;
+        padding: 0;
+        margin: 0.75rem 0 1.25rem 0;
+    }
+
+    .tos-list li {
+        display: flex;
+        gap: 0.875rem;
+        align-items: flex-start;
+        font-family: var(--font-body);
+        font-size: 0.9375rem;
+        line-height: 1.7;
+        color: var(--ink-muted);
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--rule-lt);
+    }
+
+    .tos-list li:last-child {
+        border-bottom: none;
+    }
+
+    .tos-list li::before {
+        content: '';
+        flex-shrink: 0;
+        width: 6px;
+        height: 6px;
+        background: var(--brand);
+        border-radius: 50%;
+        margin-top: 0.65rem;
+    }
+
+    .tos-list li strong {
+        color: var(--ink);
+        font-weight: 600;
+    }
+
+    /* Callout box */
+    .tos-callout {
+        background: var(--surface-alt, #F1F5FF);
+        border-left: 3px solid var(--brand);
+        border-radius: 0 8px 8px 0;
+        padding: 1.25rem 1.5rem;
+        margin: 1.25rem 0;
+    }
+
+    .tos-callout-label {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 0.5rem;
+    }
+
+    .tos-callout p {
+        font-size: 0.875rem !important;
+        line-height: 1.65 !important;
+        margin: 0 !important;
+        color: var(--ink-muted) !important;
+    }
+
+    /* Warning callout */
+    .tos-warning {
+        background: #FFFBEB;
+        border-left: 3px solid #D97706;
+        border-radius: 0 8px 8px 0;
+        padding: 1.25rem 1.5rem;
+        margin: 1.25rem 0;
+    }
+
+    .tos-warning-label {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #92400E;
+        margin-bottom: 0.5rem;
+    }
+
+    .tos-warning p {
+        font-size: 0.875rem !important;
+        line-height: 1.65 !important;
+        margin: 0 !important;
+        color: #78350F !important;
+    }
+
+    /* Contact card */
+    .tos-contact-card {
+        background: var(--white);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 1.5rem 1.75rem;
+        margin: 1.5rem 0;
+    }
+
+    .tos-contact-row {
+        display: flex;
+        gap: 1rem;
+        align-items: baseline;
+        padding: 0.625rem 0;
+        border-bottom: 1px solid var(--rule-lt);
+        font-size: 0.875rem;
+    }
+
+    .tos-contact-row:last-child {
+        border-bottom: none;
+    }
+
+    .tos-contact-label {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        flex-shrink: 0;
+        width: 110px;
+    }
+
+    .tos-contact-value {
+        font-family: var(--font-body);
+        font-size: 0.875rem;
+        color: var(--ink-muted);
+        line-height: 1.5;
+    }
+
+    .tos-contact-value a {
+        color: var(--brand);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    /* Closing statement */
+    .tos-closing {
+        margin-top: 2.5rem;
+        padding: 1.5rem 2rem;
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .tos-closing p {
+        font-family: var(--font-body);
+        font-size: 0.9375rem;
+        line-height: 1.7;
+        color: var(--muted);
+        margin: 0;
+    }
+
+    .tos-closing strong {
+        color: var(--ink-muted);
+        font-weight: 600;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .tos-agreement {
+            padding: 1.25rem 1.5rem;
+        }
+        
+        .tos-section {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+        }
+        
+        .tos-section-title {
+            font-size: 1.125rem;
+        }
+        
+        .tos-contact-card {
+            padding: 1.25rem;
+        }
+        
+        .tos-contact-row {
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 0.75rem 0;
+        }
+        
+        .tos-contact-label {
+            width: auto;
+        }
+        
+        .tos-closing {
+            padding: 1.25rem 1.5rem;
+        }
+    }
+</style>
+
+<div class="tos-wrap">
+    <div class="container">
+        <div class="tos-grid">
+
+            <!-- Sidebar -->
+            <aside class="tos-sidebar" aria-label="Table of contents">
+                <div class="tos-toc-label">
+                    <span>Contents</span>
+                </div>
+                <nav id="tos-toc">
+                    <a href="#tos-intro" class="tos-toc-link">Introduction</a>
+                    <a href="#acceptance" class="tos-toc-link is-sub">1. Acceptance of Terms</a>
+                    <a href="#eligibility" class="tos-toc-link is-sub">2. Eligibility</a>
+                    <a href="#account-registration" class="tos-toc-link is-sub">3. Account Registration</a>
+                    <a href="#user-responsibilities" class="tos-toc-link is-sub">4. User Responsibilities</a>
+                    <a href="#content-ip" class="tos-toc-link is-sub">5. Content & Intellectual Property</a>
+                    <a href="#user-content" class="tos-toc-link is-sub">6. User Generated Content</a>
+                    <a href="#prohibited-activities" class="tos-toc-link is-sub">7. Prohibited Activities</a>
+                    <a href="#third-party-links" class="tos-toc-link is-sub">8. Third Party Links</a>
+                    <a href="#disclaimer" class="tos-toc-link is-sub">9. Disclaimer of Warranties</a>
+                    <a href="#limitation-liability" class="tos-toc-link is-sub">10. Limitation of Liability</a>
+                    <a href="#indemnification" class="tos-toc-link is-sub">11. Indemnification</a>
+                    <a href="#account-termination" class="tos-toc-link is-sub">12. Account Termination</a>
+                    <a href="#changes" class="tos-toc-link is-sub">13. Changes to Terms</a>
+                    <a href="#governing-law" class="tos-toc-link is-sub">14. Governing Law & Disputes</a>
+                    <a href="#contact" class="tos-toc-link">15. Contact Information</a>
+                </nav>
+            </aside>
+
+            <!-- Article -->
+            <div class="tos-article" role="main">
+
+                <!-- Header -->
+                <div class="tos-header">
+                    <p class="tos-header-eyebrow">Legal Document</p>
+                    <h1 class="tos-title">Terms of Service</h1>
+                    <div class="tos-meta">
+                        <span class="tos-meta-item">
+                            <strong>Effective:</strong> January 15, 2026
+                        </span>
+                        <span class="tos-meta-item">
+                            <strong>Last updated:</strong> January 15, 2026
+                        </span>
+                        <span class="tos-meta-item">
+                            <strong>Operator:</strong> Ugota Chisom Stephen, Germany
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Agreement callout -->
+                <div class="tos-agreement">
+                    <p class="tos-agreement-label">Important — Please Read</p>
+                    <p>
+                        These Terms of Service constitute a legally binding agreement between you and StephensLab.
+                        <strong>By accessing or using the Services in any way, you agree to be bound by these Terms.</strong>
+                        If you do not agree to these Terms in their entirety, you must discontinue use of the Services immediately.
+                    </p>
+                </div>
+
+                <!-- Preamble -->
+                <p id="tos-intro" class="tos-preamble" style="scroll-margin-top: 100px;">
+                    Welcome to StephensLab, a technical publishing and knowledge platform focused on backend engineering, software architecture, DevOps, and computing fundamentals. These Terms of Service ("Terms") govern your access to and use of our website located at stephenlabs.io, including all associated content, features, newsletters, and services (collectively, the "Services"), operated by Ugota Chisom Stephen ("StephensLab", "we", "us", or "our"). Please read these Terms carefully before using the Services.
                 </p>
-            </header>
 
-            <!-- Introduction -->
-            <div id="introduction">
-                <p>
-                    Welcome to StephenLabs. These Terms of Service (“Terms”) govern your access to and use of our website, platform, and services (“Services”). 
-                    By accessing or using the Services, you agree to comply with these Terms. Please read them carefully.
-                </p>
+                <!-- Section 1 -->
+                <section id="acceptance" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">01</span>
+                        <h2 class="tos-section-title">Acceptance of Terms</h2>
+                    </div>
+                    <p>By accessing, browsing, or otherwise using the Services, you acknowledge that you have read, understood, and agree to be bound by these Terms and our Privacy Policy, which is incorporated herein by reference. These Terms apply to all visitors, subscribers, and other users of the Services.</p>
+                    <p>Your continued use of the Services following any modification to these Terms constitutes your acceptance of those modifications. If you are using the Services on behalf of an organization, you represent and warrant that you have the authority to bind that organization to these Terms.</p>
+                </section>
+
+                <!-- Section 2 -->
+                <section id="eligibility" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">02</span>
+                        <h2 class="tos-section-title">Eligibility</h2>
+                    </div>
+                    <p>The Services are designed to be accessible to curious minds of all ages. To subscribe to our newsletter or interact with contact forms, you must be at least 13 years of age, or 16 years of age if you are located within the European Economic Area (EEA). Users between 13 and 18 (or the applicable age of majority in your jurisdiction) must have obtained parental or guardian consent.</p>
+                    <p>By using the Services, you represent and warrant that you meet the eligibility requirements above and that all information you provide is accurate and complete. StephensLab reserves the right to refuse or terminate access to any user who does not meet these requirements.</p>
+                    <div class="tos-callout">
+                        <p class="tos-callout-label">Note for young readers</p>
+                        <p>StephensLab is a family-friendly technical publication. Readers of all ages are welcome to browse articles, tutorials, and guides. Age restrictions apply only to newsletter subscriptions and contact form submissions.</p>
+                    </div>
+                </section>
+
+                <!-- Section 3 -->
+                <section id="account-registration" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">03</span>
+                        <h2 class="tos-section-title">Account Registration</h2>
+                    </div>
+                    <p>At present, StephensLab does not require account registration to access published content. Newsletter subscriptions are managed via your email address alone. Should registration features be introduced in the future, the following obligations will apply:</p>
+                    <ul class="tos-list">
+                        <li><span><strong>Accuracy:</strong> You agree to provide accurate, current, and complete information during any registration process.</span></li>
+                        <li><span><strong>Confidentiality:</strong> You are responsible for maintaining the confidentiality of any credentials and for all activity occurring under your account.</span></li>
+                        <li><span><strong>Notification:</strong> You agree to notify us immediately of any unauthorized use of your account or any other breach of security.</span></li>
+                        <li><span><strong>Single use:</strong> You may not create multiple accounts for the purpose of circumventing restrictions or abusing the Services.</span></li>
+                    </ul>
+                    <p>StephensLab will not be liable for any loss or damage arising from your failure to comply with these obligations.</p>
+                </section>
+
+                <!-- Section 4 -->
+                <section id="user-responsibilities" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">04</span>
+                        <h2 class="tos-section-title">User Responsibilities</h2>
+                    </div>
+                    <p>As a user of the Services, you agree to use them only for lawful purposes and in a manner consistent with all applicable local, national, and international laws and regulations. Specifically, you agree to:</p>
+                    <ul class="tos-list">
+                        <li><span>Access and use the Services solely for personal, non-commercial, educational purposes unless explicitly authorized otherwise in writing by StephensLab.</span></li>
+                        <li><span>Comply with all applicable laws, regulations, and third party rights when using the Services.</span></li>
+                        <li><span>Refrain from using the Services in any manner that could damage, disable, overburden, or impair our infrastructure or systems.</span></li>
+                        <li><span>Not misrepresent your identity or affiliation with any person or organization when communicating with StephensLab.</span></li>
+                        <li><span>Report any security vulnerabilities, bugs, or misuse you discover to us responsibly via the contact information below.</span></li>
+                    </ul>
+                </section>
+
+                <!-- Section 5 -->
+                <section id="content-ip" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">05</span>
+                        <h2 class="tos-section-title">Content and Intellectual Property</h2>
+                    </div>
+                    <p>All content published on StephensLab, including but not limited to articles, tutorials, code samples, diagrams, documentation, newsletter issues, and all associated media, is owned by or licensed to StephensLab and is protected by applicable copyright, trademark, and intellectual property laws.</p>
+
+                    <h3 class="tos-subhead">What you may do</h3>
+                    <ul class="tos-list">
+                        <li><span>Access, read, and share links to content for personal, non-commercial use.</span></li>
+                        <li><span>Quote brief excerpts with clear attribution to StephensLab and a link to the original source.</span></li>
+                        <li><span>Use code samples published in our tutorials under the MIT License unless otherwise stated in the specific article.</span></li>
+                    </ul>
+
+                    <h3 class="tos-subhead">What you may not do</h3>
+                    <ul class="tos-list">
+                        <li><span>Reproduce, republish, or redistribute full articles, tutorials, or newsletter issues without prior written permission.</span></li>
+                        <li><span>Use StephensLab content for commercial purposes, including training AI models, resale, or paid publications.</span></li>
+                        <li><span>Remove or alter any copyright, trademark, or proprietary notices from any content.</span></li>
+                        <li><span>Mirror the StephensLab website or create derivative works without explicit written authorization.</span></li>
+                    </ul>
+
+                    <p>Requests for content licensing or partnerships may be directed to <a href="mailto:ugotachisomstephen@gmail.com">ugotachisomstephen@gmail.com</a>.</p>
+                </section>
+
+                <!-- Section 6 -->
+                <section id="user-content" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">06</span>
+                        <h2 class="tos-section-title">User Generated Content</h2>
+                    </div>
+                    <p>If you submit any content to StephensLab, including feedback, comments, suggestions, or any other materials via contact forms or communications, you grant StephensLab a non-exclusive, royalty-free, worldwide, perpetual license to use, reproduce, modify, and publish such content in connection with improving the Services.</p>
+                    <p>You represent and warrant that any content you submit does not violate any third party rights, is not defamatory, obscene, unlawful, or otherwise objectionable, and does not contain any viruses, malware, or harmful code.</p>
+                    <p>StephensLab is not obligated to publish, store, or act on any submitted content and reserves the right to remove or decline any submission at its sole discretion.</p>
+                </section>
+
+                <!-- Section 7 -->
+                <section id="prohibited-activities" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">07</span>
+                        <h2 class="tos-section-title">Prohibited Activities</h2>
+                    </div>
+                    <p>The following activities are strictly prohibited when using the Services. Violation of any of the below may result in immediate suspension of access and, where applicable, legal action:</p>
+                    <ul class="tos-list">
+                        <li><span><strong>Unauthorized access:</strong> Attempting to gain unauthorized access to any portion of the Services, other accounts, or connected systems.</span></li>
+                        <li><span><strong>Reverse engineering:</strong> Decompiling, disassembling, reverse engineering, or otherwise attempting to derive the source code of any software used in the Services.</span></li>
+                        <li><span><strong>Automated scraping:</strong> Using bots, crawlers, or automated tools to extract content or data from the Services at scale without prior written permission.</span></li>
+                        <li><span><strong>AI training:</strong> Using StephensLab content to train, fine-tune, or develop machine learning or AI models without explicit written authorization.</span></li>
+                        <li><span><strong>Harmful conduct:</strong> Using the Services to harass, threaten, defame, or otherwise harm any individual or organization.</span></li>
+                        <li><span><strong>Spam and phishing:</strong> Using contact forms or other features of the Services to send unsolicited communications or impersonate StephensLab.</span></li>
+                        <li><span><strong>Interference:</strong> Engaging in any activity that disrupts, degrades, or interferes with the integrity, performance, or availability of the Services.</span></li>
+                        <li><span><strong>Unlawful use:</strong> Using the Services in any manner that violates applicable local, national, or international law or regulation.</span></li>
+                    </ul>
+                </section>
+
+                <!-- Section 8 -->
+                <section id="third-party-links" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">08</span>
+                        <h2 class="tos-section-title">Third Party Links and Resources</h2>
+                    </div>
+                    <p>The Services may contain links to third party websites, tools, documentation, or resources for reference and educational purposes. StephensLab does not endorse, control, or assume responsibility for the content, privacy practices, or availability of any third party sites or resources.</p>
+                    <p>Your use of third party links is entirely at your own risk. We strongly encourage you to review the terms of service and privacy policies of any third party sites you visit. StephensLab shall not be held liable for any damages or losses arising from your use of third party resources.</p>
+                </section>
+
+                <!-- Section 9 -->
+                <section id="disclaimer" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">09</span>
+                        <h2 class="tos-section-title">Disclaimer of Warranties</h2>
+                    </div>
+                    <p>The Services are provided on an "as is" and "as available" basis without warranties of any kind, either express or implied. To the fullest extent permitted by applicable law, StephensLab expressly disclaims all warranties, including but not limited to:</p>
+                    <ul class="tos-list">
+                        <li><span>Implied warranties of merchantability, fitness for a particular purpose, or non-infringement.</span></li>
+                        <li><span>Warranties that the Services will be uninterrupted, timely, secure, error free, or free of viruses or other harmful components.</span></li>
+                        <li><span>Warranties as to the accuracy, completeness, reliability, or currency of any content published on the Services.</span></li>
+                    </ul>
+                    <div class="tos-warning">
+                        <p class="tos-warning-label">Technical content advisory</p>
+                        <p>All technical tutorials, code samples, and engineering guidance published on StephensLab are provided for informational and educational purposes only. Always validate solutions independently before applying them in production environments. StephensLab accepts no liability for outcomes resulting from the application of content published on this platform.</p>
+                    </div>
+                </section>
+
+                <!-- Section 10 -->
+                <section id="limitation-liability" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">10</span>
+                        <h2 class="tos-section-title">Limitation of Liability</h2>
+                    </div>
+                    <p>To the maximum extent permitted by applicable law, StephensLab, its operator, affiliates, contributors, and licensors shall not be liable for any indirect, incidental, special, consequential, punitive, or exemplary damages, including but not limited to:</p>
+                    <ul class="tos-list">
+                        <li><span>Loss of profits, revenue, data, goodwill, or business opportunities.</span></li>
+                        <li><span>Damages resulting from unauthorized access to or alteration of your data.</span></li>
+                        <li><span>Damages arising from your reliance on content, code samples, or technical guidance published on the Services.</span></li>
+                        <li><span>Service interruptions, errors, or omissions in content.</span></li>
+                    </ul>
+                    <p>In jurisdictions that do not allow the exclusion or limitation of incidental or consequential damages, our liability shall be limited to the greatest extent permitted by law. In no event shall StephensLab's total aggregate liability to you for all claims arising out of or relating to these Terms exceed one hundred euros (€100).</p>
+                </section>
+
+                <!-- Section 11 -->
+                <section id="indemnification" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">11</span>
+                        <h2 class="tos-section-title">Indemnification</h2>
+                    </div>
+                    <p>You agree to indemnify, defend, and hold harmless StephensLab, its operator, contributors, and successors from and against any and all claims, liabilities, damages, judgments, awards, losses, costs, expenses, and fees (including reasonable legal fees) arising out of or relating to:</p>
+                    <ul class="tos-list">
+                        <li><span>Your violation of these Terms or any applicable law or regulation.</span></li>
+                        <li><span>Your use or misuse of the Services or any content therein.</span></li>
+                        <li><span>Your infringement of any third party intellectual property, privacy, or other rights.</span></li>
+                        <li><span>Any content you submit, post, or otherwise transmit through the Services.</span></li>
+                    </ul>
+                    <p>StephensLab reserves the right, at its own expense, to assume the exclusive defense and control of any matter otherwise subject to indemnification by you, in which case you agree to cooperate fully with such defense.</p>
+                </section>
+
+                <!-- Section 12 -->
+                <section id="account-termination" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">12</span>
+                        <h2 class="tos-section-title">Account Termination and Access Restriction</h2>
+                    </div>
+                    <p>StephensLab reserves the right, at its sole discretion and without prior notice, to suspend, restrict, or permanently terminate your access to the Services for any of the following reasons:</p>
+                    <ul class="tos-list">
+                        <li><span>Violation of any provision of these Terms.</span></li>
+                        <li><span>Conduct that is harmful, abusive, fraudulent, or illegal.</span></li>
+                        <li><span>Actions that jeopardize the security, integrity, or availability of the Services.</span></li>
+                        <li><span>Requests from law enforcement or other governmental authorities.</span></li>
+                    </ul>
+                    <p>You may also discontinue your use of the Services at any time. Newsletter subscribers may unsubscribe at any time by clicking the unsubscribe link in any email communication. Upon termination, all licenses and rights granted to you under these Terms will immediately cease.</p>
+                    <p>Sections of these Terms that by their nature should survive termination, including Sections 5, 10, 11, and 14, shall continue in full force and effect.</p>
+                </section>
+
+                <!-- Section 13 -->
+                <section id="changes" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">13</span>
+                        <h2 class="tos-section-title">Changes to These Terms</h2>
+                    </div>
+                    <p>StephensLab reserves the right to modify or replace these Terms at any time. When changes are made, we will update the "Last updated" date at the top of this page. For material changes, we will make reasonable efforts to provide notice, which may include a notice on the website or an email to newsletter subscribers.</p>
+                    <p>Your continued access to or use of the Services after any modifications become effective constitutes your agreement to the revised Terms. If you do not agree to the new Terms, you must stop using the Services.</p>
+                </section>
+
+                <!-- Section 14 -->
+                <section id="governing-law" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">14</span>
+                        <h2 class="tos-section-title">Governing Law and Dispute Resolution</h2>
+                    </div>
+                    <p>These Terms shall be governed by and construed in accordance with the laws of the Federal Republic of Germany, without regard to its conflict of law principles. The United Nations Convention on Contracts for the International Sale of Goods does not apply to these Terms.</p>
+
+                    <h3 class="tos-subhead">Dispute resolution</h3>
+                    <p>In the event of any dispute, controversy, or claim arising out of or relating to these Terms or the Services, the parties agree to first attempt to resolve the matter informally by contacting StephensLab directly at <a href="mailto:ugotachisomstephen@gmail.com">ugotachisomstephen@gmail.com</a>. We will endeavor to respond and resolve disputes within 30 days.</p>
+                    <p>If informal resolution is unsuccessful, disputes shall be subject to the exclusive jurisdiction of the competent courts located in Germany, unless mandatory consumer protection laws in your country of residence provide otherwise.</p>
+
+                    <h3 class="tos-subhead">EU Online Dispute Resolution</h3>
+                    <p>If you are located within the European Union, you may also use the EU Online Dispute Resolution platform at <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer">ec.europa.eu/consumers/odr</a>.</p>
+                </section>
+
+                <!-- Section 15 -->
+                <section id="contact" class="tos-section">
+                    <div class="tos-section-header">
+                        <span class="tos-section-num">15</span>
+                        <h2 class="tos-section-title">Contact Information</h2>
+                    </div>
+                    <p>If you have any questions about these Terms, wish to report a violation, or require clarification on any provision, please contact us through the following channels:</p>
+                    <div class="tos-contact-card">
+                        <div class="tos-contact-row">
+                            <span class="tos-contact-label">Email</span>
+                            <span class="tos-contact-value"><a href="mailto:ugotachisomstephen@gmail.com">ugotachisomstephen@gmail.com</a></span>
+                        </div>
+                        <div class="tos-contact-row">
+                            <span class="tos-contact-label">Website</span>
+                            <span class="tos-contact-value"><a href="https://stephenlabs.io" target="_blank" rel="noopener noreferrer">stephenlabs.io</a></span>
+                        </div>
+                        <div class="tos-contact-row">
+                            <span class="tos-contact-label">Operator</span>
+                            <span class="tos-contact-value">Ugota Chisom Stephen — Germany</span>
+                        </div>
+                        <div class="tos-contact-row">
+                            <span class="tos-contact-label">Response time</span>
+                            <span class="tos-contact-value">Within 3 business days</span>
+                        </div>
+                        <div class="tos-contact-row">
+                            <span class="tos-contact-label">Subject line</span>
+                            <span class="tos-contact-value">Terms of Service — [Your Query]</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Closing statement -->
+                <div class="tos-closing">
+                    <p>
+                        StephensLab is committed to maintaining a transparent, fair, and professional platform.
+                        By using the Services, you confirm that you have read, understood, and agree to these Terms
+                        in their entirety. <strong>Thank you for being part of the StephensLab community.</strong>
+                    </p>
+                </div>
+
             </div>
 
-            <!-- Section 1 -->
-            <h2 id="acceptance" class="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-                1. Acceptance of Terms
-            </h2>
-            <p>
-                By using StephenLabs, you acknowledge that you have read, understood, and agreed to be bound by these Terms. 
-                If you do not agree, you may not access or use the Services.
-            </p>
-
-            <!-- Section 2 -->
-            <h2 id="eligibility" class="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-                2. Eligibility
-            </h2>
-            <p>
-                To access our Services, you must be at least 7 years old or the minimum age required in your jurisdiction. 
-                By using the Services, you represent and warrant that you meet this requirement.
-            </p>
-
-            <!-- Section 3 -->
-            <h2 id="user-responsibilities" class="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-                3. User Responsibilities
-            </h2>
-            <ul class="list-disc list-inside space-y-1">
-                <li>Provide accurate and complete information during registration.</li>
-                <li>Maintain the confidentiality of your account credentials.</li>
-                <li>Comply with all applicable laws, rules, and regulations.</li>
-                <li>Use the Services for lawful and authorized purposes only.</li>
-            </ul>
-
-            <!-- Section 4 -->
-            <h2 id="account-termination" class="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-                4. Account Termination
-            </h2>
-            <p>
-                StephenLabs reserves the right to suspend or terminate accounts for violation of these Terms or any illegal or harmful activity.
-            </p>
-
-            <!-- Section 5 -->
-            <h2 id="content" class="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-                5. Content and Intellectual Property
-            </h2>
-            <p>
-                All content, materials, and intellectual property provided through StephenLabs are owned or licensed by us. 
-                Users may access content for personal, non-commercial use only. Copying, redistribution, or commercial use is prohibited without explicit permission.
-            </p>
-
-            <!-- Section 6 -->
-            <h2 id="prohibited-activities" class="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-                6. Prohibited Activities
-            </h2>
-            <ul class="list-disc list-inside space-y-1">
-                <li>Reverse engineering, copying, or modifying the platform.</li>
-                <li>Using the Services to harass or harm others.</li>
-                <li>Attempting unauthorized access to accounts or systems.</li>
-                <li>Engaging in any activity that disrupts the Services.</li>
-            </ul>
-
-            <!-- Section 7 -->
-            <h2 id="disclaimer" class="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-                7. Disclaimer of Warranties
-            </h2>
-            <p>
-                StephenLabs provides the Services on an “as-is” and “as available” basis. 
-                While we strive to ensure the accuracy, completeness, and reliability of all content,
-                tutorials, and technical guidance provided on the platform, we make no absolute guarantees. 
-                Users acknowledge that all content is provided for informational purposes only and that use of the Services is at their own risk.
-            </p>
-
-            <!-- Section 8 -->
-            <h2 id="limitation-of-liability" class="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-                8. Limitation of Liability
-            </h2>
-            <p>
-                To the fullest extent permitted by law, StephenLabs shall not be liable for any indirect, incidental, consequential, or punitive damages arising from your use of the Services.
-            </p>
-
-            <!-- Section 9 -->
-            <h2 id="indemnification" class="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-                9. Indemnification
-            </h2>
-            <p>
-                You agree to indemnify, defend, and hold harmless StephenLabs, its affiliates, and employees from any claims, damages, losses, or expenses arising from your violation of these Terms or misuse of the Services.
-            </p>
-
-            <!-- Section 10 -->
-            <h2 id="changes" class="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-                10. Changes to Terms
-            </h2>
-            <p>
-                We may update these Terms from time to time. Changes will be posted on this page with a revised “Last updated” date. 
-                Continued use of the Services constitutes acceptance of the revised Terms.
-            </p>
-
-            <!-- Section 11 -->
-            <h2 id="governing-law" class="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-                11. Governing Law
-            </h2>
-            <p>
-                These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which StephenLabs operates, without regard to conflict of law provisions.
-            </p>
-
-            <!-- Section 12 -->
-            <h2 id="contact" class="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-                12. Contact Information
-            </h2>
-            <p>
-                Email: <a href="mailto:ugotachisomstephen@gmail.com" class="text-blue-600 hover:underline">ugotachisomstephen@gmail.com</a><br>
-                Website: <a href="https://stephenlabs.io" class="text-blue-600 hover:underline">https://stephenlabs.io</a>
-            </p>
-
-            <p class="mt-8 text-gray-500 italic">
-                StephenLabs is committed to providing a safe, transparent, and professional platform. 
-                By using our Services, you agree to these Terms and understand your responsibilities.
-            </p>
         </div>
     </div>
-</section>
+</div>
+
+<script>
+(function () {
+    var tocLinks = document.querySelectorAll('#tos-toc .tos-toc-link');
+    var sections = [];
+
+    tocLinks.forEach(function (link) {
+        var id = link.getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        if (el) sections.push({ id: id, el: el, link: link });
+    });
+
+    function onScroll() {
+        var scrollY = window.scrollY + 110;
+        var active = null;
+        for (var i = sections.length - 1; i >= 0; i--) {
+            if (sections[i].el.offsetTop <= scrollY) {
+                active = sections[i];
+                break;
+            }
+        }
+        tocLinks.forEach(function (l) { l.classList.remove('active'); });
+        if (active) active.link.classList.add('active');
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+        anchor.addEventListener('click', function (e) {
+            var target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                e.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                history.pushState(null, null, this.getAttribute('href'));
+            }
+        });
+    });
+})();
+</script>
+
 {% endblock %}

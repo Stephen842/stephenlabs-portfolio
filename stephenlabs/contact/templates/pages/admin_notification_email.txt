@@ -1,0 +1,19 @@
+StephensLab - NEW CONTACT MESSAGE
+
+Subject: {{ subject }}
+
+SENDER INFORMATION
+------------------
+Name: {{ name }}
+Email: {{ email }}
+Category: {{ category }}
+IP Address: {{ ip_address|default:"Not recorded" }}
+Received: {{ received_at }}
+
+MESSAGE
+-------
+{{ message }}
+
+---
+View in admin: {{ admin_url }}
+Reply to: {{ email }}

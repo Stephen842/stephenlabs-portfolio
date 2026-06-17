@@ -1,0 +1,425 @@
+{% extends "pages/admin_base.html" %}
+{% block page_title %}{{ message.name }} — Message{% endblock %}
+{% block nav_messages %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 1.5rem;
+        align-items: start;
+    }
+
+    @media (max-width: 900px) {
+        .detail-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Message card ────────────────────────────────── */
+    .msg-card { margin-bottom: 1.25rem; }
+
+    .msg-body-text {
+        font-size: 0.9375rem;
+        line-height: 1.8;
+        color: var(--text-2);
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    /* ── Reply form ──────────────────────────────────── */
+    .reply-header {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.875rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .reply-header-icon {
+        width: 28px;
+        height: 28px;
+        background: var(--brand-pale);
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--brand);
+        font-size: 0.875rem;
+        flex-shrink: 0;
+    }
+
+    .reply-to-info {
+        font-size: 0.75rem;
+        color: var(--muted);
+    }
+
+    .reply-to-info strong { color: var(--text-2); }
+
+    .char-count {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        color: var(--muted);
+        text-align: right;
+        margin-top: 0.25rem;
+        letter-spacing: 0.06em;
+    }
+
+    /* ── Sidebar panel ───────────────────────────────── */
+    .detail-sidebar { display: flex; flex-direction: column; gap: 1rem; }
+
+    .meta-card { }
+
+    .meta-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.5rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.8125rem;
+    }
+
+    .meta-row:last-child { border-bottom: none; }
+
+    .meta-key {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        flex-shrink: 0;
+    }
+
+    .meta-val {
+        color: var(--text-2);
+        text-align: right;
+        word-break: break-all;
+    }
+
+    .meta-val a { color: var(--brand); }
+
+    /* ── Status selector ─────────────────────────────── */
+    .status-selector { display: flex; flex-direction: column; gap: 0.375rem; }
+
+    .status-option {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.4375rem 0.75rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        font-size: 0.8125rem;
+        color: var(--muted);
+        background: var(--bg);
+        transition: all var(--transition);
+    }
+
+    .status-option:hover { border-color: var(--border-2); color: var(--text-2); background: var(--surface-2); }
+
+    .status-option.active-status { border-color: var(--brand); background: var(--brand-pale); color: var(--text); }
+
+    .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .dot-new      { background: var(--s-new); }
+    .dot-read     { background: var(--s-read); }
+    .dot-replied  { background: var(--s-replied); }
+    .dot-archived { background: var(--s-archived); }
+    .dot-spam     { background: var(--s-spam); }
+
+    /* ── Admin notes ─────────────────────────────────── */
+    .notes-card .field-textarea { min-height: 90px; font-size: 0.8125rem; }
+
+    /* ── Danger zone ─────────────────────────────────── */
+    .danger-zone {
+        background: rgba(248,81,73,0.05);
+        border: 1px solid rgba(248,81,73,0.15);
+        border-radius: var(--radius);
+        padding: 0.875rem 1rem;
+    }
+
+    .danger-zone-label {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--s-spam);
+        margin-bottom: 0.625rem;
+    }
+
+    .danger-zone p {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-bottom: 0.625rem;
+        line-height: 1.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'contact:contact_messages_list' %}">Messages</a>
+    <span>/</span>
+    <span class="current">{{ message.name }}</span>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="page-eyebrow">Contact · {{ message.get_subject_category_display }}</p>
+        <h1 class="page-title">{{ message.subject|truncatechars:60 }}</h1>
+        <p class="page-sub">From {{ message.name }} &mdash; received {{ message.created_at|date:"F j, Y \a\t H:i" }}</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'contact:contact_messages_list' %}" class="btn btn-ghost btn-sm">
+            <i class='bx bx-arrow-back'></i> Back
+        </a>
+        <a href="{% url 'contact:contact_message_delete' message.id %}" class="btn btn-danger btn-sm">
+            <i class='bx bx-trash'></i> Delete
+        </a>
+    </div>
+</div>
+
+<div class="detail-grid">
+
+    <!-- Left: message + reply ─────────────────────────── -->
+    <div>
+
+        <!-- Message body -->
+        <div class="card msg-card">
+            <div class="card-header">
+                <span class="card-header-title">Message</span>
+                <span class="status-pill {{ message.status }}" id="current-status-pill">
+                    {{ message.get_status_display }}
+                </span>
+            </div>
+            <div class="card-body">
+                <p class="msg-body-text">{{ message.message }}</p>
+            </div>
+        </div>
+
+        <!-- Reply form -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-header-title">Reply</span>
+            </div>
+            <div class="card-body">
+                <div class="reply-header">
+                    <div class="reply-header-icon"><i class='bx bx-send'></i></div>
+                    <div class="reply-to-info">
+                        Replying to <strong>{{ message.name }}</strong>
+                        &lt;<strong>{{ message.email }}</strong>&gt;
+                    </div>
+                </div>
+
+                <form method="post" id="reply-form">
+                    {% csrf_token %}
+
+                    <div class="field-group">
+                        <label class="field-label">Subject</label>
+                        <input
+                            type="text"
+                            name="reply_subject"
+                            class="field-input"
+                            value="{{ form.reply_subject.value|default:'' }}"
+                            placeholder="Reply subject"
+                            required
+                        >
+                        {% if form.reply_subject.errors %}
+                            <p style="font-size:0.75rem;color:var(--s-spam);margin-top:0.25rem;">{{ form.reply_subject.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label">Message</label>
+                        <textarea
+                            name="reply_body"
+                            class="field-textarea"
+                            rows="10"
+                            placeholder="Write your reply…"
+                            id="reply-body"
+                            required
+                        >{{ form.reply_body.value|default:'' }}</textarea>
+                        <p class="char-count" id="reply-counter">0 chars</p>
+                        {% if form.reply_body.errors %}
+                            <p style="font-size:0.75rem;color:var(--s-spam);margin-top:0.25rem;">{{ form.reply_body.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div style="display:flex;gap:0.625rem;justify-content:flex-end;">
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="this.closest('form').reset();">
+                            Clear
+                        </button>
+                        <button type="submit" class="btn btn-primary btn-sm" id="reply-btn">
+                            <i class='bx bx-send'></i> Send reply
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Right: sidebar ────────────────────────────────── -->
+    <div class="detail-sidebar">
+
+        <!-- Sender meta -->
+        <div class="card meta-card">
+            <div class="card-header">
+                <span class="card-header-title">Sender details</span>
+            </div>
+            <div class="card-body" style="padding: 0.5rem 1.25rem;">
+                <div class="meta-row">
+                    <span class="meta-key">Name</span>
+                    <span class="meta-val">{{ message.name }}</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-key">Email</span>
+                    <span class="meta-val"><a href="mailto:{{ message.email }}">{{ message.email }}</a></span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-key">Category</span>
+                    <span class="meta-val"><span class="cat-chip">{{ message.get_subject_category_display }}</span></span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-key">IP</span>
+                    <span class="meta-val" style="font-family:var(--font-mono);font-size:0.6875rem;">{{ message.ip_address|default:"Not recorded" }}</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-key">Received</span>
+                    <span class="meta-val">{{ message.created_at|date:"M d, Y H:i" }}</span>
+                </div>
+                {% if message.replied_at %}
+                <div class="meta-row">
+                    <span class="meta-key">Replied</span>
+                    <span class="meta-val">{{ message.replied_at|date:"M d, Y H:i" }}</span>
+                </div>
+                {% endif %}
+                {% if message.referrer %}
+                <div class="meta-row">
+                    <span class="meta-key">Referrer</span>
+                    <span class="meta-val" style="font-size:0.6875rem;">{{ message.referrer|truncatechars:40 }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-header-title">Status</span>
+            </div>
+            <div class="card-body">
+                <div class="status-selector" id="status-selector">
+                    {% for value, label in message.STATUS_CHOICES %}
+                    <button
+                        class="status-option {% if message.status == value %}active-status{% endif %}"
+                        data-status="{{ value }}"
+                        onclick="changeStatus('{{ value }}', this)"
+                        type="button"
+                    >
+                        <span class="status-dot dot-{{ value }}"></span>
+                        {{ label }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin notes -->
+        <div class="card notes-card">
+            <div class="card-header">
+                <span class="card-header-title">Admin notes</span>
+            </div>
+            <div class="card-body">
+                <div class="field-group" style="margin-bottom:0.625rem;">
+                    <textarea
+                        name="admin_notes"
+                        form="reply-form"
+                        class="field-textarea"
+                        placeholder="Internal notes — not sent to the sender…"
+                    >{{ message.admin_notes }}</textarea>
+                </div>
+                <p style="font-size:0.6875rem;color:var(--muted);">Saved alongside the reply when you submit.</p>
+            </div>
+        </div>
+
+        <!-- Danger zone -->
+        <div class="danger-zone">
+            <p class="danger-zone-label">Danger zone</p>
+            <p>Permanently delete this message. This action cannot be undone.</p>
+            <a href="{% url 'contact:contact_message_delete' message.id %}" class="btn btn-danger btn-sm" style="width:100%;justify-content:center;">
+                <i class='bx bx-trash'></i> Delete message
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Reply character counter
+    (function() {
+        var ta = document.getElementById('reply-body');
+        var counter = document.getElementById('reply-counter');
+        if (ta && counter) {
+            function update() { counter.textContent = ta.value.length + ' chars'; }
+            ta.addEventListener('input', update);
+            update();
+        }
+
+        // Submit loading state
+        var form = document.getElementById('reply-form');
+        var btn  = document.getElementById('reply-btn');
+        if (form && btn) {
+            form.addEventListener('submit', function() {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="bx bx-loader-alt" style="animation:spin 0.7s linear infinite;"></i> Sending…';
+            });
+        }
+    })();
+
+    // AJAX status update
+    function changeStatus(newStatus, el) {
+        var csrfToken = '{{ csrf_token }}';
+        fetch('{% url "contact:contact_message_update_status" message.id %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'status=' + newStatus
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                document.querySelectorAll('.status-option').forEach(function(b) {
+                    b.classList.toggle('active-status', b.dataset.status === newStatus);
+                });
+                var pill = document.getElementById('current-status-pill');
+                if (pill) {
+                    pill.className = 'status-pill ' + newStatus;
+                    var labels = {new:'New', read:'Read', replied:'Replied', archived:'Archived', spam:'Spam'};
+                    pill.textContent = labels[newStatus] || newStatus;
+                }
+            }
+        })
+        .catch(function(e) { console.error(e); });
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+</script>
+<style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+{% endblock %}

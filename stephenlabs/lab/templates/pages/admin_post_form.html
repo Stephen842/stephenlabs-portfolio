@@ -1,0 +1,428 @@
+{% extends "pages/admin_base.html" %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_posts %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        gap: 1.5rem;
+        align-items: start;
+    }
+    @media (max-width: 900px) {
+        .form-grid { grid-template-columns: 1fr; }
+    }
+
+    .editor-toolbar {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius) var(--radius) 0 0;
+        padding: 0.5rem;
+        display: flex;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+    }
+    .editor-btn {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text-2);
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: 0.75rem;
+        transition: all var(--transition);
+    }
+    .editor-btn:hover {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: white;
+    }
+
+    .slug-preview {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.5rem 0.75rem;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+    }
+
+    .char-counter {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        color: var(--muted-lt);
+        text-align: right;
+        margin-top: 0.25rem;
+    }
+
+    .sidebar-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    .sidebar-card-header {
+        padding: 0.75rem 1rem;
+        background: var(--surface-2);
+        border-bottom: 1px solid var(--border);
+        font-weight: 600;
+        font-size: 0.8125rem;
+    }
+    .sidebar-card-body {
+        padding: 1rem;
+    }
+
+    .tag-hint {
+        font-size: 0.6875rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 100px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .status-badge.draft { background: var(--s-draft-bg); color: var(--s-draft); }
+    .status-badge.published { background: var(--s-pub-bg); color: var(--s-published); }
+
+    .image-preview {
+        margin-top: 0.75rem;
+        padding: 0.75rem;
+        background: var(--surface-2);
+        border-radius: var(--radius);
+    }
+    .image-preview img {
+        max-width: 100%;
+        border-radius: var(--radius);
+    }
+    .remove-image-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        margin-top: 0.5rem;
+        cursor: pointer;
+        font-size: 0.6875rem;
+        color: var(--s-spam);
+    }
+
+    /* File input styling */
+    .file-input-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+    .file-input-wrapper input[type="file"] {
+        display: block;
+        width: 100%;
+        padding: 0.5rem;
+        background: var(--bg);
+        border: 1px solid var(--border-2);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-size: 0.875rem;
+        cursor: pointer;
+    }
+    .file-input-wrapper input[type="file"]::file-selector-button {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.25rem 0.75rem;
+        color: var(--text-2);
+        cursor: pointer;
+        margin-right: 0.75rem;
+    }
+    .file-input-wrapper input[type="file"]::file-selector-button:hover {
+        background: var(--surface);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumb">
+    <a href="{% url 'lab:dashboard_post_list' %}">Posts</a>
+    <span>/</span>
+    <span class="current">{{ title }}</span>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="page-eyebrow">Blog</p>
+        <h1 class="page-title">{{ title }}</h1>
+        <p class="page-sub">{% if is_edit %}Edit existing post{% else %}Write a new article{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        {% if is_edit and post.status == 'published' %}
+        <a href="{% url 'post_detail' post.slug %}" target="_blank" class="btn btn-secondary btn-sm">
+            <i class='bx bx-link-external'></i> View live
+        </a>
+        {% endif %}
+        <a href="{% url 'lab:dashboard_post_list' %}" class="btn btn-ghost btn-sm">
+            <i class='bx bx-arrow-back'></i> Back to posts
+        </a>
+    </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="post-form">
+    {% csrf_token %}
+
+    <div class="form-grid">
+
+        <!-- Main content area -->
+        <div>
+            <div class="field-group">
+                <label class="field-label" for="{{ form.title.id_for_label }}">Title <span style="color:var(--s-spam);">*</span></label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                <p class="error-msg">{{ form.title.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div class="field-group">
+                <label class="field-label" for="{{ form.slug.id_for_label }}">Slug (URL)</label>
+                {{ form.slug }}
+                <div class="slug-preview" id="slug-preview">
+                    stephenlabs.io/posts/<span id="slug-value">{% if form.slug.value %}{{ form.slug.value }}{% else %}your-slug{% endif %}</span>/
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label class="field-label" for="{{ form.excerpt.id_for_label }}">Excerpt</label>
+                {{ form.excerpt }}
+                <div class="char-counter" id="excerpt-counter">0 / 200 characters</div>
+            </div>
+
+            <div class="field-group">
+                <label class="field-label" for="{{ form.content.id_for_label }}">Content <span style="color:var(--s-spam);">*</span></label>
+                <div class="editor-toolbar">
+                    <button type="button" class="editor-btn" onclick="wrapText('**', '**')">Bold</button>
+                    <button type="button" class="editor-btn" onclick="wrapText('*', '*')">Italic</button>
+                    <button type="button" class="editor-btn" onclick="wrapText('`', '`')">Code</button>
+                    <button type="button" class="editor-btn" onclick="wrapText('```\n', '\n```')">Code Block</button>
+                    <button type="button" class="editor-btn" onclick="wrapText('[', '](url)')">Link</button>
+                    <button type="button" class="editor-btn" onclick="wrapText('# ', '')">Heading 1</button>
+                    <button type="button" class="editor-btn" onclick="wrapText('## ', '')">Heading 2</button>
+                    <button type="button" class="editor-btn" onclick="wrapText('- ', '')">Bullet List</button>
+                    <button type="button" class="editor-btn" onclick="wrapText('1. ', '')">Numbered List</button>
+                    {% if is_edit %}
+                    <button type="button" class="editor-btn" onclick="openPreview()">
+                        <i class='bx bx-show'></i> Preview
+                    </button>
+                    {% endif %}
+                </div>
+                {{ form.content }}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div>
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Post Status</div>
+                <div class="sidebar-card-body">
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.status.id_for_label }}">Status</label>
+                        {{ form.status }}
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        {% if is_edit and post.status == 'published' %}
+                        <div class="status-badge published">Published</div>
+                        {% elif is_edit %}
+                        <div class="status-badge draft">Draft</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Category</div>
+                <div class="sidebar-card-body">
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.category.id_for_label }}">Select Category</label>
+                        {{ form.category }}
+                    </div>
+                    <a href="{% url 'lab:category_create' %}" target="_blank" class="btn btn-ghost btn-sm" style="width: 100%; justify-content: center; margin-top: 0.5rem;">
+                        <i class='bx bx-plus'></i> Add new category
+                    </a>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Tags</div>
+                <div class="sidebar-card-body">
+                    <div class="field-group">
+                        {{ form.tags }}
+                        <div class="tag-hint">Comma-separated tags. Example: django, python, web-development</div>
+                    </div>
+                    <a href="{% url 'lab:tag_create' %}" target="_blank" class="btn btn-ghost btn-sm" style="width: 100%; justify-content: center; margin-top: 0.5rem;">
+                        <i class='bx bx-plus'></i> Add new tag
+                    </a>
+                </div>
+            </div>
+
+            <!-- Featured Image card with file upload -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Featured Image</div>
+                <div class="sidebar-card-body">
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.featured_image.id_for_label }}">Upload Image</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" name="featured_image" accept="image/jpeg,image/png,image/gif,image/webp" id="id_featured_image" class="field-input">
+                        </div>
+                        <div class="tag-hint">Upload a featured image for your post. Recommended size: 1200x630px. Accepted formats: JPG, PNG, GIF, WebP. Max size: 5MB</div>
+                    </div>
+                    
+                    <!-- Current image preview -->
+                    {% if form.instance.featured_image %}
+                    <div class="image-preview" id="image-preview-container">
+                        <p style="font-size: 0.6875rem; color: var(--muted); margin-bottom: 0.5rem;">Current image:</p>
+                        <img src="{{ form.instance.featured_image.url }}" alt="Current featured image" id="current-image-preview">
+                        <label class="remove-image-label">
+                            <input type="checkbox" name="featured_image-clear" id="featured_image-clear">
+                            Remove current image
+                        </label>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- New image preview (shows when a new file is selected) -->
+                    <div id="new-image-preview" class="image-preview" style="display: none;">
+                        <p style="font-size: 0.6875rem; color: var(--muted); margin-bottom: 0.5rem;">New image:</p>
+                        <img id="new-image-img" alt="New image preview">
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Actions</div>
+                <div class="sidebar-card-body">
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        {% if is_edit %}
+                        <a href="{% url 'lab:post_preview' post.id %}" target="_blank" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                            <i class='bx bx-show'></i> Preview
+                        </a>
+                        {% endif %}
+                        <button type="submit" name="save" value="save" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                            <i class='bx bx-save'></i> Save {% if is_edit %}Changes{% else %}Post{% endif %}
+                        </button>
+                        <button type="submit" name="save_and_publish" value="publish" class="btn btn-success" style="width: 100%; justify-content: center;">
+                            <i class='bx bx-check-circle'></i> Save & Publish
+                        </button>
+                        <a href="{% url 'lab:dashboard_post_list' %}" class="btn btn-ghost" style="width: 100%; justify-content: center;">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+var titleInput = document.getElementById('post-title');
+var slugInput = document.getElementById('post-slug');
+var slugValue = document.getElementById('slug-value');
+
+if (titleInput && slugInput) {
+    titleInput.addEventListener('blur', function() {
+        if (!slugInput.value || slugInput.value === '') {
+            var slug = this.value.toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '');
+            slugInput.value = slug;
+            if (slugValue) slugValue.textContent = slug;
+        }
+    });
+}
+
+if (slugInput && slugValue) {
+    slugInput.addEventListener('input', function() {
+        slugValue.textContent = this.value || 'your-slug';
+    });
+}
+
+var excerptInput = document.getElementById('post-excerpt');
+var excerptCounter = document.getElementById('excerpt-counter');
+
+if (excerptInput && excerptCounter) {
+    function updateExcerptCount() {
+        var len = excerptInput.value.length;
+        excerptCounter.textContent = len + ' / 200 characters';
+        if (len > 200) {
+            excerptCounter.style.color = 'var(--s-spam)';
+        } else {
+            excerptCounter.style.color = 'var(--muted-lt)';
+        }
+    }
+    excerptInput.addEventListener('input', updateExcerptCount);
+    updateExcerptCount();
+}
+
+function wrapText(startTag, endTag) {
+    var textarea = document.getElementById('post-content');
+    var start = textarea.selectionStart;
+    var end = textarea.selectionEnd;
+    var selectedText = textarea.value.substring(start, end);
+    var replacement = startTag + selectedText + endTag;
+    textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+    textarea.focus();
+}
+
+document.getElementById('post-form').addEventListener('submit', function(e) {
+    var submitter = e.submitter;
+    if (submitter && submitter.value === 'publish') {
+        var statusSelect = document.getElementById('post-status');
+        if (statusSelect) {
+            statusSelect.value = 'published';
+        }
+    }
+});
+
+function openPreview() {
+    var title = titleInput ? titleInput.value : '';
+    if (!title) {
+        alert('Please enter a title first');
+        titleInput.focus();
+        return;
+    }
+    {% if is_edit %}
+        window.open('{% url "lab:post_preview" post.id %}', '_blank');
+    {% else %}
+        alert('Please save the post first, then you can preview it.');
+    {% endif %}
+}
+
+// Image preview functionality
+var fileInput = document.getElementById('id_featured_image');
+var newPreviewContainer = document.getElementById('new-image-preview');
+var newPreviewImg = document.getElementById('new-image-img');
+
+if (fileInput) {
+    fileInput.addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (file) {
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                newPreviewImg.src = event.target.result;
+                newPreviewContainer.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            newPreviewContainer.style.display = 'none';
+            newPreviewImg.src = '';
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,1329 @@
+{% extends "pages/base.html" %}
+
+{% block content %}
+
+<style>
+    .cs-wrap {
+        width: 100%;
+        padding: 2rem 0 5rem;
+    }
+
+    .cs-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+        align-items: start;
+    }
+
+    @media (min-width: 1024px) {
+        .cs-grid {
+            grid-template-columns: 280px 1fr;
+            gap: 4rem;
+        }
+    }
+
+    .cs-sidebar {
+        position: static;
+    }
+
+    @media (min-width: 1024px) {
+        .cs-sidebar {
+            position: sticky;
+            top: 104px;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--rule) transparent;
+            padding-right: 0.5rem;
+        }
+        .cs-sidebar::-webkit-scrollbar { width: 4px; }
+        .cs-sidebar::-webkit-scrollbar-track { background: transparent; }
+        .cs-sidebar::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 4px; }
+    }
+
+    .cs-toc-label {
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .cs-toc-label span {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    .cs-toc-link {
+        display: block;
+        padding: 0.4rem 0.75rem;
+        margin-bottom: 0.125rem;
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        line-height: 1.45;
+        color: var(--muted);
+        border-left: 2px solid transparent;
+        border-radius: 0 6px 6px 0;
+        text-decoration: none;
+        transition: all 150ms ease;
+    }
+
+    .cs-toc-link:hover {
+        color: var(--brand);
+        background: var(--brand-pale);
+        border-left-color: rgba(37,99,235,0.3);
+    }
+
+    .cs-toc-link.active {
+        color: var(--brand);
+        border-left-color: var(--brand);
+        background: var(--brand-pale);
+        font-weight: 500;
+    }
+
+    .cs-toc-link.is-sub {
+        padding-left: 1.5rem;
+        font-size: 0.75rem;
+    }
+
+    .cs-pref-summary {
+        margin-top: 1.75rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--rule);
+    }
+
+    .cs-pref-summary-label {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.875rem;
+    }
+
+    .cs-badge-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.4rem 0;
+        border-bottom: 1px solid var(--rule-lt);
+    }
+
+    .cs-badge-row:last-child { border-bottom: none; }
+
+    .cs-badge-name {
+        font-family: var(--font-body);
+        font-size: 0.75rem;
+        color: var(--ink-muted);
+    }
+
+    .cs-badge {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 0.2rem 0.5rem;
+        border-radius: 3px;
+    }
+
+    .cs-badge.on  { background: #D1FAE5; color: #065F46; }
+    .cs-badge.off { background: #F1F5F9; color: var(--muted); }
+    .cs-badge.req { background: var(--brand-pale); color: var(--brand); }
+
+    .cs-article { min-width: 0; }
+
+    .cs-header {
+        margin-bottom: 2.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .cs-header-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 1rem;
+    }
+
+    .cs-header-eyebrow::before {
+        content: '';
+        display: inline-block;
+        width: 20px;
+        height: 2px;
+        background: var(--brand);
+    }
+
+    .cs-title {
+        font-family: var(--font-display);
+        font-size: clamp(2rem, 5vw, 3rem);
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+        margin: 0 0 1rem 0;
+    }
+
+    .cs-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .cs-meta-item {
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        color: var(--muted);
+    }
+
+    .cs-meta-item strong {
+        color: var(--ink-muted);
+        font-weight: 500;
+    }
+
+    .cs-intro-callout {
+        background: var(--brand-pale);
+        border-left: 4px solid var(--brand);
+        border-radius: 0 12px 12px 0;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .cs-intro-callout-label {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 0.75rem;
+    }
+
+    .cs-intro-callout p {
+        font-family: var(--font-body);
+        font-size: 0.9375rem;
+        line-height: 1.7;
+        color: var(--ink-muted);
+        margin: 0;
+    }
+
+    .cs-intro-callout strong { color: var(--ink); font-weight: 600; }
+
+    .cs-preamble {
+        font-family: var(--font-body);
+        font-size: 1rem;
+        line-height: 1.75;
+        color: var(--ink-muted);
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--rule-lt);
+    }
+
+    .cs-section {
+        scroll-margin-top: 100px;
+        margin-bottom: 2.5rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid var(--rule-lt);
+    }
+
+    .cs-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .cs-section-header {
+        display: flex;
+        align-items: baseline;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .cs-section-num {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        color: var(--brand);
+        letter-spacing: 0.08em;
+        flex-shrink: 0;
+        background: var(--brand-pale);
+        padding: 0.125rem 0.5rem;
+        border-radius: 4px;
+    }
+
+    .cs-section-title {
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.02em;
+        line-height: 1.3;
+        margin: 0;
+    }
+
+    .cs-section p {
+        font-family: var(--font-body);
+        font-size: 0.9375rem;
+        line-height: 1.75;
+        color: var(--ink-muted);
+        margin: 0 0 1rem 0;
+    }
+
+    .cs-section p:last-child { margin-bottom: 0; }
+    .cs-section p strong { color: var(--ink); font-weight: 600; }
+
+    .cs-section a {
+        color: var(--brand);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        text-decoration-thickness: 1px;
+        transition: opacity 150ms;
+    }
+
+    .cs-section a:hover { opacity: 0.8; }
+
+    .cs-subhead {
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+        margin: 1.5rem 0 0.75rem 0;
+    }
+
+    .cs-list {
+        list-style: none;
+        padding: 0;
+        margin: 0.75rem 0 1.25rem 0;
+    }
+
+    .cs-list li {
+        display: flex;
+        gap: 0.875rem;
+        align-items: flex-start;
+        font-family: var(--font-body);
+        font-size: 0.9375rem;
+        line-height: 1.7;
+        color: var(--ink-muted);
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--rule-lt);
+    }
+
+    .cs-list li:last-child { border-bottom: none; }
+
+    .cs-list li::before {
+        content: '';
+        flex-shrink: 0;
+        width: 6px;
+        height: 6px;
+        background: var(--brand);
+        border-radius: 50%;
+        margin-top: 0.65rem;
+    }
+
+    .cs-list li strong { color: var(--ink); font-weight: 600; }
+
+    .cs-cookie-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin: 1.25rem 0;
+    }
+
+    .cs-cookie-card {
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--white);
+    }
+
+    .cs-cookie-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.125rem 1.375rem;
+        background: var(--surface);
+        border-bottom: 1px solid var(--rule);
+        gap: 1rem;
+    }
+
+    .cs-cookie-card-head-left {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+        min-width: 0;
+    }
+
+    .cs-cookie-card-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 0.875rem;
+    }
+
+    .cs-cookie-card-icon.essential   { background: #DBEAFE; color: #1D4ED8; }
+    .cs-cookie-card-icon.functional  { background: #D1FAE5; color: #065F46; }
+    .cs-cookie-card-icon.analytics   { background: #FEF3C7; color: #92400E; }
+    .cs-cookie-card-icon.marketing   { background: #FCE7F3; color: #9D174D; }
+    .cs-cookie-card-icon.preferences { background: #EDE9FE; color: #5B21B6; }
+
+    .cs-cookie-card-title-group { min-width: 0; }
+
+    .cs-cookie-card-name {
+        font-family: var(--font-display);
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+        margin: 0 0 0.125rem 0;
+    }
+
+    .cs-cookie-card-sub {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    .cs-toggle-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        flex-shrink: 0;
+    }
+
+    .cs-toggle-status {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        min-width: 32px;
+        text-align: right;
+    }
+
+    .cs-toggle {
+        position: relative;
+        display: inline-block;
+        width: 42px;
+        height: 24px;
+        flex-shrink: 0;
+    }
+
+    .cs-toggle input { opacity: 0; width: 0; height: 0; }
+
+    .cs-toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background: var(--rule);
+        border-radius: 24px;
+        transition: background 200ms ease;
+    }
+
+    .cs-toggle-slider::before {
+        content: '';
+        position: absolute;
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background: var(--white);
+        border-radius: 50%;
+        transition: transform 200ms ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    .cs-toggle input:checked + .cs-toggle-slider {
+        background: var(--brand);
+    }
+
+    .cs-toggle input:checked + .cs-toggle-slider::before {
+        transform: translateX(18px);
+    }
+
+    .cs-toggle input:disabled + .cs-toggle-slider {
+        background: #BFDBFE;
+        cursor: not-allowed;
+        opacity: 0.75;
+    }
+
+    .cs-cookie-card-body {
+        padding: 1.125rem 1.375rem;
+    }
+
+    .cs-cookie-card-desc {
+        font-family: var(--font-body);
+        font-size: 0.875rem;
+        line-height: 1.7;
+        color: var(--ink-muted);
+        margin: 0 0 1rem 0;
+    }
+
+    .cs-cookie-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+    }
+
+    .cs-cookie-table thead tr {
+        background: var(--surface);
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .cs-cookie-table thead th {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .cs-cookie-table tbody tr {
+        border-bottom: 1px solid var(--rule-lt);
+    }
+
+    .cs-cookie-table tbody tr:last-child { border-bottom: none; }
+
+    .cs-cookie-table tbody td {
+        padding: 0.5rem 0.75rem;
+        color: var(--ink-muted);
+        vertical-align: top;
+        line-height: 1.5;
+    }
+
+    .cs-cookie-table tbody td:first-child {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--ink);
+        font-weight: 500;
+    }
+
+    .cs-save-bar {
+        position: sticky;
+        bottom: 1.5rem;
+        z-index: 40;
+        margin-top: 2.5rem;
+    }
+
+    .cs-save-bar-inner {
+        background: var(--ink);
+        border-radius: 10px;
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        box-shadow: 0 8px 32px rgba(10,22,40,0.25);
+        flex-wrap: wrap;
+    }
+
+    .cs-save-bar-text {
+        font-family: var(--font-body);
+        font-size: 0.875rem;
+        color: #94A3B8;
+        line-height: 1.5;
+    }
+
+    .cs-save-bar-text strong {
+        color: var(--white);
+        font-weight: 500;
+    }
+
+    .cs-save-bar-actions {
+        display: flex;
+        gap: 0.625rem;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+    }
+
+    .cs-btn {
+        font-family: var(--font-display);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        padding: 0.5rem 1.125rem;
+        border-radius: 6px;
+        cursor: pointer;
+        border: none;
+        transition: opacity 150ms, background 150ms;
+        letter-spacing: 0.01em;
+    }
+
+    .cs-btn:hover { opacity: 0.88; }
+
+    .cs-btn-ghost {
+        background: rgba(255,255,255,0.08);
+        color: #CBD5E1;
+        border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .cs-btn-primary {
+        background: var(--brand);
+        color: var(--white);
+    }
+
+    .cs-btn-reject {
+        background: rgba(255,255,255,0.05);
+        color: #94A3B8;
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .cs-callout {
+        background: var(--surface-alt, #F1F5FF);
+        border-left: 3px solid var(--brand);
+        border-radius: 0 8px 8px 0;
+        padding: 1.125rem 1.375rem;
+        margin: 1.25rem 0;
+    }
+
+    .cs-callout-label {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 0.375rem;
+    }
+
+    .cs-callout p {
+        font-size: 0.875rem !important;
+        line-height: 1.7 !important;
+        margin: 0 !important;
+        color: var(--ink-muted) !important;
+    }
+
+    .cs-contact-card {
+        background: var(--white);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 1.5rem 1.75rem;
+        margin: 1.5rem 0;
+    }
+
+    .cs-contact-row {
+        display: flex;
+        gap: 1rem;
+        align-items: baseline;
+        padding: 0.625rem 0;
+        border-bottom: 1px solid var(--rule-lt);
+        font-size: 0.875rem;
+    }
+
+    .cs-contact-row:last-child { border-bottom: none; }
+
+    .cs-contact-label {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        flex-shrink: 0;
+        width: 110px;
+    }
+
+    .cs-contact-value {
+        font-family: var(--font-body);
+        font-size: 0.875rem;
+        color: var(--ink-muted);
+        line-height: 1.5;
+    }
+
+    .cs-closing {
+        margin-top: 2.5rem;
+        padding: 1.5rem 2rem;
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .cs-closing p {
+        font-family: var(--font-body);
+        font-size: 0.9375rem;
+        line-height: 1.7;
+        color: var(--muted);
+        margin: 0;
+    }
+
+    .cs-closing strong {
+        color: var(--ink-muted);
+        font-weight: 600;
+    }
+
+    .cs-toast {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: #065F46;
+        color: #D1FAE5;
+        font-family: var(--font-body);
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.75rem 1.25rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        opacity: 0;
+        transform: translateY(8px);
+        transition: opacity 250ms ease, transform 250ms ease;
+        pointer-events: none;
+        z-index: 100;
+    }
+
+    .cs-toast.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+        .cs-wrap {
+            padding: 1rem 0 3rem;
+        }
+        
+        .cs-intro-callout {
+            padding: 1.25rem 1.5rem;
+        }
+        
+        .cs-section {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+        }
+        
+        .cs-section-title {
+            font-size: 1.125rem;
+        }
+        
+        .cs-contact-card {
+            padding: 1.25rem;
+        }
+        
+        .cs-contact-row {
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 0.75rem 0;
+        }
+        
+        .cs-contact-label {
+            width: auto;
+        }
+        
+        .cs-closing {
+            padding: 1.25rem 1.5rem;
+        }
+    }
+</style>
+
+<div class="cs-wrap">
+    <div class="container">
+        <div class="cs-grid">
+
+            <aside class="cs-sidebar" aria-label="Table of contents">
+                <div class="cs-toc-label">
+                    <span>Contents</span>
+                </div>
+                <nav id="cs-toc">
+                    <a href="#cs-intro" class="cs-toc-link">Introduction</a>
+                    <a href="#what-are-cookies" class="cs-toc-link is-sub">1. What Are Cookies</a>
+                    <a href="#how-we-use" class="cs-toc-link is-sub">2. How We Use Cookies</a>
+                    <a href="#cookie-categories" class="cs-toc-link is-sub">3. Cookie Categories</a>
+                    <a href="#third-party-cookies" class="cs-toc-link is-sub">4. Third Party Cookies</a>
+                    <a href="#your-preferences" class="cs-toc-link is-sub">5. Your Preferences</a>
+                    <a href="#manage-browser" class="cs-toc-link is-sub">6. Managing via Browser</a>
+                    <a href="#cookie-list" class="cs-toc-link is-sub">7. Full Cookie List</a>
+                    <a href="#retention" class="cs-toc-link is-sub">8. Cookie Retention</a>
+                    <a href="#updates" class="cs-toc-link is-sub">9. Updates to Policy</a>
+                    <a href="#contact" class="cs-toc-link">10. Contact Us</a>
+                </nav>
+
+                <div class="cs-pref-summary">
+                    <p class="cs-pref-summary-label">Your current preferences</p>
+                    <div class="cs-badge-row">
+                        <span class="cs-badge-name">Essential</span>
+                        <span class="cs-badge req" id="badge-essential">Required</span>
+                    </div>
+                    <div class="cs-badge-row">
+                        <span class="cs-badge-name">Functional</span>
+                        <span class="cs-badge off" id="badge-functional">Off</span>
+                    </div>
+                    <div class="cs-badge-row">
+                        <span class="cs-badge-name">Analytics</span>
+                        <span class="cs-badge off" id="badge-analytics">Off</span>
+                    </div>
+                    <div class="cs-badge-row">
+                        <span class="cs-badge-name">Marketing</span>
+                        <span class="cs-badge off" id="badge-marketing">Off</span>
+                    </div>
+                    <div class="cs-badge-row">
+                        <span class="cs-badge-name">Preferences</span>
+                        <span class="cs-badge off" id="badge-preferences">Off</span>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="cs-article" role="main">
+
+                <div class="cs-header">
+                    <p class="cs-header-eyebrow">Privacy Controls</p>
+                    <h1 class="cs-title">Cookie Settings</h1>
+                    <div class="cs-meta">
+                        <span class="cs-meta-item"><strong>Last updated:</strong> January 15, 2026</span>
+                        <span class="cs-meta-item"><strong>Operator:</strong> Ugota Chisom Stephen, Germany</span>
+                        <span class="cs-meta-item"><strong>Regulation:</strong> GDPR and ePrivacy Directive</span>
+                    </div>
+                </div>
+
+                <div class="cs-intro-callout">
+                    <p class="cs-intro-callout-label">Your Privacy, Your Choice</p>
+                    <p>
+                        StephensLab is committed to full transparency about how we use cookies and similar technologies.
+                        <strong>Only essential cookies are active by default.</strong> You have complete control over all
+                        other categories. Your preferences are saved locally and can be updated at any time on this page.
+                        We will never use cookies to sell or share your data with third parties for advertising.
+                    </p>
+                </div>
+
+                <p id="cs-intro" class="cs-preamble" style="scroll-margin-top: 100px;">
+                    This Cookie Settings page explains how StephensLab ("we", "us", "our") uses cookies and similar
+                    tracking technologies when you visit stephenlabs.io. It describes what each type of cookie does,
+                    why we use them, and how you can manage or withdraw your consent at any time. This policy is compliant
+                    with the EU General Data Protection Regulation (GDPR), the UK GDPR, and the ePrivacy Directive.
+                    It should be read alongside our
+                    <a href="{% url 'privacy_policy' %}">Privacy Policy</a> and
+                    <a href="{% url 'terms_of_service' %}">Terms of Service</a>.
+                </p>
+
+                <section id="what-are-cookies" class="cs-section">
+                    <div class="cs-section-header">
+                        <span class="cs-section-num">01</span>
+                        <h2 class="cs-section-title">What Are Cookies</h2>
+                    </div>
+                    <p>Cookies are small text files that are placed on your device when you visit a website. They are widely used to make websites work more efficiently, to remember your preferences, and to provide analytical information to website operators.</p>
+                    <p>Cookies are set either by the website you are visiting or by third party services embedded on that site. They may be stored for the duration of your browser session or for a defined period after you leave the site.</p>
+
+                    <h3 class="cs-subhead">Related technologies</h3>
+                    <p>In addition to cookies, StephensLab may use the following similar technologies:</p>
+                    <ul class="cs-list">
+                        <li><span><strong>Local Storage:</strong> Browser based storage used to save your cookie preferences. Data is stored on your device and not transmitted to our servers.</span></li>
+                        <li><span><strong>Session Storage:</strong> Temporary storage cleared automatically when you close your browser tab. Used for transient UI state only.</span></li>
+                        <li><span><strong>HTTP Headers:</strong> Certain preference signals such as Do Not Track (DNT) are read from your browser headers and respected by our platform.</span></li>
+                    </ul>
+                </section>
+
+                <section id="how-we-use" class="cs-section">
+                    <div class="cs-section-header">
+                        <span class="cs-section-num">02</span>
+                        <h2 class="cs-section-title">How We Use Cookies</h2>
+                    </div>
+                    <p>StephensLab uses cookies strictly and purposefully. We follow a data minimization approach. We only deploy cookies that are necessary for a stated, legitimate purpose. We use cookies for the following broad purposes:</p>
+                    <ul class="cs-list">
+                        <li><span><strong>Site security:</strong> CSRF tokens and session identifiers to protect forms and authenticated areas.</span></li>
+                        <li><span><strong>Functionality:</strong> Remembering preferences such as display mode, language, or newsletter dismissal state.</span></li>
+                        <li><span><strong>Performance measurement:</strong> Understanding which articles are most read, how long visitors engage, and where they navigate from. We use anonymized, aggregated data only.</span></li>
+                        <li><span><strong>Compliance:</strong> Recording your cookie consent choices so we can demonstrate compliance with GDPR and the ePrivacy Directive.</span></li>
+                    </ul>
+                    <p><strong>We do not use cookies for behavioral advertising, cross site tracking, or profiling of individual users.</strong></p>
+                </section>
+
+                <section id="cookie-categories" class="cs-section">
+                    <div class="cs-section-header">
+                        <span class="cs-section-num">03</span>
+                        <h2 class="cs-section-title">Cookie Categories</h2>
+                    </div>
+                    <p>We group our cookies into five categories below. Use the toggles to manage your preferences. Changes take effect immediately and are saved to your browser. You may update them at any time.</p>
+
+                    <div class="cs-cookie-cards">
+
+                        <div class="cs-cookie-card">
+                            <div class="cs-cookie-card-head">
+                                <div class="cs-cookie-card-head-left">
+                                    <div class="cs-cookie-card-icon essential">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z" fill="currentColor" opacity=".3"/><path d="M8 4a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 018 4zm0 8a1 1 0 100-2 1 1 0 000 2z" fill="currentColor"/></svg>
+                                    </div>
+                                    <div class="cs-cookie-card-title-group">
+                                        <p class="cs-cookie-card-name">Essential Cookies</p>
+                                        <p class="cs-cookie-card-sub">Always active · Required</p>
+                                    </div>
+                                </div>
+                                <div class="cs-toggle-wrap">
+                                    <span class="cs-toggle-status">On</span>
+                                    <label class="cs-toggle" title="Cannot be disabled">
+                                        <input type="checkbox" checked disabled>
+                                        <span class="cs-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="cs-cookie-card-body">
+                                <p class="cs-cookie-card-desc">Essential cookies are strictly necessary for the website to function and cannot be switched off. They are set only in response to actions you take, such as setting your privacy preferences, logging in, or filling in forms. They do not store any personally identifiable information.</p>
+                                <table class="cs-cookie-table">
+                                    <thead><tr><th>Cookie name</th><th>Purpose</th><th>Duration</th><th>Type</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>csrftoken</td><td>Cross site request forgery protection for all POST forms</td><td>1 year</td><td>First party</td></tr>
+                                        <tr><td>sessionid</td><td>Maintains authenticated sessions for admin and staff only</td><td>Session</td><td>First party</td></tr>
+                                        <tr><td>sl_consent</td><td>Stores your cookie consent preferences on this page</td><td>1 year</td><td>First party</td></tr>
+                                        <tr><td>messages</td><td>Django flash messages for success and error notifications</td><td>Session</td><td>First party</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="cs-cookie-card">
+                            <div class="cs-cookie-card-head">
+                                <div class="cs-cookie-card-head-left">
+                                    <div class="cs-cookie-card-icon functional">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6.5 1A1.5 1.5 0 005 2.5V3H2.5A1.5 1.5 0 001 4.5v8A1.5 1.5 0 002.5 14h11a1.5 1.5 0 001.5-1.5v-8A1.5 1.5 0 0013.5 3H11v-.5A1.5 1.5 0 009.5 1h-3zm0 1h3a.5.5 0 01.5.5V3h-4v-.5a.5.5 0 01.5-.5z" fill="currentColor"/></svg>
+                                    </div>
+                                    <div class="cs-cookie-card-title-group">
+                                        <p class="cs-cookie-card-name">Functional Cookies</p>
+                                        <p class="cs-cookie-card-sub">Optional · Enhances usability</p>
+                                    </div>
+                                </div>
+                                <div class="cs-toggle-wrap">
+                                    <span class="cs-toggle-status" id="status-functional">Off</span>
+                                    <label class="cs-toggle" title="Toggle functional cookies">
+                                        <input type="checkbox" id="toggle-functional" data-category="functional">
+                                        <span class="cs-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="cs-cookie-card-body">
+                                <p class="cs-cookie-card-desc">Functional cookies enable enhanced features and personalisation. They may be set by us or by third party providers whose services we have added. If you disable them, some features may not function as expected. For example, your reading mode preference may not be saved between visits.</p>
+                                <table class="cs-cookie-table">
+                                    <thead><tr><th>Cookie name</th><th>Purpose</th><th>Duration</th><th>Type</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>sl_display_mode</td><td>Remembers your preferred reading mode for light or dark display</span></span></span></span></td><td>6 months</span></span></span></span></td><td>First party</span></span></span></span></td></tr>
+                                        <tr><td>sl_newsletter_dismissed</span></span></span></span><td>Prevents re-showing the newsletter prompt after dismissal</span></span></span></span><td>30 days</span></span></span></span><td>First party</span></span></span></span></tr>
+                                        <tr><td>sl_language</span></span></span></span><td>Stores your preferred content language if selected</span></span></span></span><td>1 year</span></span></span></span><td>First party</span></span></span></span></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="cs-cookie-card">
+                            <div class="cs-cookie-card-head">
+                                <div class="cs-cookie-card-head-left">
+                                    <div class="cs-cookie-card-icon analytics">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 11l4-4 3 3 4-5 3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </div>
+                                    <div class="cs-cookie-card-title-group">
+                                        <p class="cs-cookie-card-name">Analytics Cookies</p>
+                                        <p class="cs-cookie-card-sub">Optional · Improves content</p>
+                                    </div>
+                                </div>
+                                <div class="cs-toggle-wrap">
+                                    <span class="cs-toggle-status" id="status-analytics">Off</span>
+                                    <label class="cs-toggle" title="Toggle analytics cookies">
+                                        <input type="checkbox" id="toggle-analytics" data-category="analytics">
+                                        <span class="cs-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="cs-cookie-card-body">
+                                <p class="cs-cookie-card-desc">Analytics cookies help us understand how visitors interact with our content. Which articles are most popular, how readers navigate the site, and where they arrive from. All data is anonymized and aggregated. We never use analytics data to identify individual users. Enabling this helps us improve StephensLab for everyone.</p>
+                                <table class="cs-cookie-table">
+                                    <thead><tr><th>Cookie name</th><th>Purpose</th><th>Duration</th><th>Type</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>sl_analytics_id</span></span></span></span><td>Anonymous visitor identifier for session aggregation</span></span></span></span><td>90 days</span></span></span></span><td>First party</span></span></span></span></td>
+                                        <tr><td>sl_pageviews</span></span></span></span><td>Counts page views per session with no personal data</span></span></span></span><td>Session</span></span></span></span><td>First party</span></span></span></span></tr>
+                                        <tr><td>sl_referrer</span></span></span></span><td>Records referring source for traffic analysis</span></span></span></span><td>Session</span></span></span></span><td>First party</span></span></span></span></tr>
+                                    </tbody>
+                                </table>
+                                <div class="cs-callout" style="margin-top:0.875rem;">
+                                    <p class="cs-callout-label">Analytics approach</p>
+                                    <p>StephensLab uses a self-hosted, privacy first analytics approach. No data is sent to Google Analytics or any third party analytics platform. All measurement is conducted on our own infrastructure under the same data protection standards as the rest of the platform.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cs-cookie-card">
+                            <div class="cs-cookie-card-head">
+                                <div class="cs-cookie-card-head-left">
+                                    <div class="cs-cookie-card-icon marketing">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4.5A2.5 2.5 0 014.5 2h7A2.5 2.5 0 0114 4.5v7a2.5 2.5 0 01-2.5 2.5h-7A2.5 2.5 0 012 11.5v-7z" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 8h5M8 5.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                                    </div>
+                                    <div class="cs-cookie-card-title-group">
+                                        <p class="cs-cookie-card-name">Marketing Cookies</p>
+                                        <p class="cs-cookie-card-sub">Optional · Currently unused</p>
+                                    </div>
+                                </div>
+                                <div class="cs-toggle-wrap">
+                                    <span class="cs-toggle-status" id="status-marketing">Off</span>
+                                    <label class="cs-toggle" title="Toggle marketing cookies">
+                                        <input type="checkbox" id="toggle-marketing" data-category="marketing">
+                                        <span class="cs-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="cs-cookie-card-body">
+                                <p class="cs-cookie-card-desc">Marketing cookies are used to track visitors across websites for the purpose of displaying relevant advertisements. StephensLab <strong>does not currently use marketing cookies</strong> and does not serve paid advertising. This category is disclosed here for full transparency and future compliance readiness should advertising features ever be introduced.</p>
+                                <div class="cs-callout">
+                                    <p class="cs-callout-label">Our commitment</p>
+                                    <p>StephensLab will never introduce advertising or marketing cookies without first updating this page, notifying newsletter subscribers, and obtaining fresh consent where required by law.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cs-cookie-card">
+                            <div class="cs-cookie-card-head">
+                                <div class="cs-cookie-card-head-left">
+                                    <div class="cs-cookie-card-icon preferences">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" fill="currentColor"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.22 3.22l1.42 1.42M11.36 11.36l1.42 1.42M3.22 12.78l1.42-1.42M11.36 4.64l1.42-1.42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                                    </div>
+                                    <div class="cs-cookie-card-title-group">
+                                        <p class="cs-cookie-card-name">Preference Cookies</p>
+                                        <p class="cs-cookie-card-sub">Optional · Personalisation</p>
+                                    </div>
+                                </div>
+                                <div class="cs-toggle-wrap">
+                                    <span class="cs-toggle-status" id="status-preferences">Off</span>
+                                    <label class="cs-toggle" title="Toggle preference cookies">
+                                        <input type="checkbox" id="toggle-preferences" data-category="preferences">
+                                        <span class="cs-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="cs-cookie-card-body">
+                                <p class="cs-cookie-card-desc">Preference cookies allow the website to remember information that changes the way the site behaves or looks. For example, your preferred font size, article layout density, or sidebar state. These cookies do not track you across other websites and contain no personally identifiable information.</p>
+                                <table class="cs-cookie-table">
+                                    <thead><tr><th>Cookie name</th><th>Purpose</th><th>Duration</th><th>Type</th></tr></thead>
+                                    <tbody>
+                                        <tr><td>sl_font_size</span></span></span></span><td>Stores your preferred article reading font size</span></span></span></span><td>6 months</span></span></span></span><td>First party</span></span></span></span></td>
+                                        <tr><td>sl_sidebar_state</span></span></span></span><td>Remembers whether the TOC sidebar is expanded or collapsed</span></span></span></span><td>30 days</span></span></span></span><td>First party</span></span></span></span></tr>
+                                        <tr><td>sl_layout</span></span></span></span><td>Stores preferred content density, compact or comfortable</span></span></span></span><td>6 months</span></span></span></span><td>First party</span></span></span></span></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="cs-save-bar" id="cs-save-bar" style="display:none;">
+                        <div class="cs-save-bar-inner">
+                            <p class="cs-save-bar-text"><strong>You have unsaved changes.</strong> Save your preferences or accept or reject all to apply them.</p>
+                            <div class="cs-save-bar-actions">
+                                <button class="cs-btn cs-btn-reject" onclick="rejectAll()">Reject all optional</button>
+                                <button class="cs-btn cs-btn-ghost" onclick="acceptAll()">Accept all</button>
+                                <button class="cs-btn cs-btn-primary" onclick="savePreferences()">Save preferences</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="third-party-cookies" class="cs-section">
+                    <div class="cs-section-header">
+                        <span class="cs-section-num">04</span>
+                        <h2 class="cs-section-title">Third Party Cookies</h2>
+                    </div>
+                    <p>StephensLab is designed to minimize third party dependencies. At present, we do not embed third party services that set cookies on your device. The following external resources are loaded as static assets and do not set cookies:</p>
+                    <ul class="cs-list">
+                        <li><span><strong>Google Fonts:</strong> Loaded as a CSS stylesheet for typography. Google may log the request IP address, but no cookies are set by this request. Refer to Google's privacy policy for their data handling practices.</span></li>
+                        <li><span><strong>CDN hosted CSS and JS:</strong> Open source libraries loaded from public CDNs. These are static asset requests and do not set cookies or track users.</span></li>
+                    </ul>
+                    <p>Should StephensLab integrate any third party service that sets cookies in the future, such as embedded video players, comment systems, or social sharing buttons, this page will be updated and consent will be sought before deployment.</p>
+                </section>
+
+                <section id="your-preferences" class="cs-section">
+                    <div class="cs-section-header">
+                        <span class="cs-section-num">05</span>
+                        <h2 class="cs-section-title">Your Preferences</h2>
+                    </div>
+                    <p>You are in full control of your cookie preferences on StephensLab. Your rights under GDPR and the ePrivacy Directive include:</p>
+                    <ul class="cs-list">
+                        <li><span><strong>Right to withdraw consent:</strong> You may withdraw consent for any optional cookie category at any time by returning to this page and updating the toggles above. Withdrawal does not affect the lawfulness of any processing carried out before consent was withdrawn.</span></li>
+                        <li><span><strong>Right to refuse:</strong> Refusing optional cookies will not prevent you from accessing any content on StephensLab. No content is gated behind cookie consent.</span></li>
+                        <li><span><strong>Right to information:</strong> You are entitled to clear information about every cookie we use, which is provided in the full cookie list in Section 7.</span></li>
+                        <li><span><strong>Do Not Track:</strong> StephensLab respects the browser level Do Not Track (DNT) signal. If DNT is enabled, analytics and preference cookies will not be loaded regardless of your saved preferences on this page.</span></li>
+                    </ul>
+                </section>
+
+                <section id="manage-browser" class="cs-section">
+                    <div class="cs-section-header">
+                        <span class="cs-section-num">06</span>
+                        <h2 class="cs-section-title">Managing Cookies via Your Browser</h2>
+                    </div>
+                    <p>In addition to the preference controls on this page, you can manage, block, or delete cookies at any time using your browser settings. Instructions for the most common browsers are available at the following links:</p>
+                    <ul class="cs-list">
+                        <li><span><strong>Google Chrome:</strong> <a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener noreferrer">support.google.com/chrome</a></span></li>
+                        <li><span><strong>Mozilla Firefox:</strong> <a href="https://support.mozilla.org/en-US/kb/cookies-information-websites-store-on-your-computer" target="_blank" rel="noopener noreferrer">support.mozilla.org</a></span></li>
+                        <li><span><strong>Apple Safari:</strong> <a href="https://support.apple.com/guide/safari/manage-cookies-sfri11471" target="_blank" rel="noopener noreferrer">support.apple.com/safari</a></span></li>
+                        <li><span><strong>Microsoft Edge:</strong> <a href="https://support.microsoft.com/en-us/microsoft-edge/delete-cookies-in-microsoft-edge" target="_blank" rel="noopener noreferrer">support.microsoft.com/edge</a></span></li>
+                    </ul>
+                    <div class="cs-callout">
+                        <p class="cs-callout-label">Important note</p>
+                        <p>Blocking all cookies through your browser settings, including essential cookies, may cause parts of StephensLab to behave unexpectedly. In particular, CSRF protection on forms requires the csrftoken cookie to be present. Blocking it may prevent form submissions from working correctly.</p>
+                    </div>
+                </section>
+
+                <section id="cookie-list" class="cs-section">
+                    <div class="cs-section-header">
+                        <span class="cs-section-num">07</span>
+                        <h2 class="cs-section-title">Full Cookie List</h2>
+                    </div>
+                    <p>The following is a comprehensive list of every cookie currently set by StephensLab, organized by category.</p>
+
+                    <h3 class="cs-subhead">Essential</h3>
+                    <table class="cs-cookie-table" style="margin-bottom:1.25rem;">
+                        <thead><tr><th>Name</th><th>Purpose</th><th>Duration</th><th>Domain</th></tr></thead>
+                        <tbody>
+                            <tr><td>csrftoken</span></span></span></span><td>Django CSRF protection for form submissions</span></span></span></span><td>1 year</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                            <tr><td>sessionid</span></span></span></span><td>Authenticated session management for admin only</span></span></span></span><td>Session</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                            <tr><td>sl_consent</span></span></span></span><td>Records cookie consent version and selections</span></span></span></span><td>1 year</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                            <tr><td>messages</span></span></span></span><td>Transient UI notification state for Django messages</span></span></span></span><td>Session</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                        </tbody>
+                    </table>
+
+                    <h3 class="cs-subhead">Functional</h3>
+                    <table class="cs-cookie-table" style="margin-bottom:1.25rem;">
+                        <thead><tr><th>Name</th><th>Purpose</th><th>Duration</th><th>Domain</th></tr></thead>
+                        <tbody>
+                            <tr><td>sl_display_mode</span></span></span></span><td>Reading mode preference for light or dark display</span></span></span></span><td>6 months</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                            <tr><td>sl_newsletter_dismissed</span></span></span></span><td>Newsletter prompt suppression state</span></span></span></span><td>30 days</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                            <tr><td>sl_language</span></span></span></span><td>Content language preference</span></span></span></span><td>1 year</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                        </tbody>
+                    </table>
+
+                    <h3 class="cs-subhead">Analytics</h3>
+                    <table class="cs-cookie-table" style="margin-bottom:1.25rem;">
+                        <thead><tr><th>Name</th><th>Purpose</th><th>Duration</th><th>Domain</th></tr></thead>
+                        <tbody>
+                            <tr><td>sl_analytics_id</span></span></span></span><td>Anonymous visitor identifier with no personally identifiable information</span></span></span></span><td>90 days</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                            <tr><td>sl_pageviews</span></span></span></span><td>Session page view counter</span></span></span></span><td>Session</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                            <tr><td>sl_referrer</span></span></span></span><td>Traffic source attribution</span></span></span></span><td>Session</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                        </tbody>
+                    </table>
+
+                    <h3 class="cs-subhead">Marketing</h3>
+                    <table class="cs-cookie-table" style="margin-bottom:1.25rem;">
+                        <thead><tr><th>Name</th><th>Purpose</th><th>Duration</th><th>Domain</th></tr></thead>
+                        <tbody>
+                            <tr><td colspan="4" style="color:var(--muted);font-style:italic;text-align:center;padding:1rem;">No marketing cookies are currently in use. Even if toggled on, no marketing cookies will be set. This category is reserved for future transparency.</span></span></span></span></td>
+                        </tbody>
+                    </table>
+
+                    <h3 class="cs-subhead">Preferences</h3>
+                    <table class="cs-cookie-table">
+                        <thead><tr><th>Name</th><th>Purpose</th><th>Duration</th><th>Domain</th></tr></thead>
+                        <tbody>
+                            <tr><td>sl_font_size</span></span></span></span><td>Article reading font size preference</span></span></span></span><td>6 months</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                            <tr><td>sl_sidebar_state</span></span></span></span><td>TOC sidebar expanded or collapsed state</span></span></span></span><td>30 days</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                            <tr><td>sl_layout</span></span></span></span><td>Content density preference for compact or comfortable layout</span></span></span></span><td>6 months</span></span></span></span><td>stephenlabs.io</span></span></span></span></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="retention" class="cs-section">
+                    <div class="cs-section-header">
+                        <span class="cs-section-num">08</span>
+                        <h2 class="cs-section-title">Cookie Retention</h2>
+                    </div>
+                    <p>Cookies are retained for the durations specified in the cookie list above. At the end of a cookie's retention period, the cookie is automatically deleted by your browser. You may also delete cookies at any time manually through your browser settings or by using the "Reject all optional" button above.</p>
+                    <p>Your consent preferences stored in <strong>sl_consent</strong> are retained for 12 months. After this period, we will prompt you to review and re-confirm your preferences to ensure they remain current and accurate.</p>
+                    <p>Session cookies are deleted automatically when you close your browser. They store no personally identifiable information and carry no data across sessions.</p>
+                </section>
+
+                <section id="updates" class="cs-section">
+                    <div class="cs-section-header">
+                        <span class="cs-section-num">09</span>
+                        <h2 class="cs-section-title">Updates to This Policy</h2>
+                    </div>
+                    <p>StephensLab may update this Cookie Settings page from time to time to reflect changes in the cookies we use, changes in law, or improvements to our privacy practices. When material changes are made, we will update the "Last updated" date above and, where required by law, re-request consent.</p>
+                    <p>We encourage you to review this page periodically. Your continued use of the Services after any changes constitutes your acknowledgment of the updated policy.</p>
+                </section>
+
+                <section id="contact" class="cs-section">
+                    <div class="cs-section-header">
+                        <span class="cs-section-num">10</span>
+                        <h2 class="cs-section-title">Contact Us</h2>
+                    </div>
+                    <p>If you have questions about how StephensLab uses cookies, want to exercise your data rights, or wish to report a concern, please contact us:</p>
+                    <div class="cs-contact-card">
+                        <div class="cs-contact-row">
+                            <span class="cs-contact-label">Email</span>
+                            <span class="cs-contact-value"><a href="mailto:ugotachisomstephen@gmail.com">ugotachisomstephen@gmail.com</a></span>
+                        </div>
+                        <div class="cs-contact-row">
+                            <span class="cs-contact-label">Subject line</span>
+                            <span class="cs-contact-value">Cookie Settings for Your Query</span>
+                        </div>
+                        <div class="cs-contact-row">
+                            <span class="cs-contact-label">Response time</span>
+                            <span class="cs-contact-value">Within 3 days under Art. 12(3) GDPR</span>
+                        </div>
+                        <div class="cs-contact-row">
+                            <span class="cs-contact-label">Operator</span>
+                            <span class="cs-contact-value">Ugota Chisom Stephen, Germany</span>
+                        </div>
+                        <div class="cs-contact-row">
+                            <span class="cs-contact-label">DPA</span>
+                            <span class="cs-contact-value"><a href="https://www.datenschutz-berlin.de" target="_blank" rel="noopener noreferrer">Berlin Commissioner for Data Protection</a></span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="cs-closing">
+                    <p>
+                        StephensLab believes privacy is a right, not a feature.
+                        We are committed to keeping our cookie usage minimal, transparent, and fully within your control.
+                        <strong>Thank you for trusting StephensLab with your time and attention.</strong>
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="cs-toast" id="cs-toast" role="status" aria-live="polite">Preferences saved</div>
+
+<script>
+(function () {
+    var tocLinks = document.querySelectorAll('#cs-toc .cs-toc-link');
+    var sections = [];
+
+    tocLinks.forEach(function (link) {
+        var id = link.getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        if (el) sections.push({ id: id, el: el, link: link });
+    });
+
+    function onScroll() {
+        var scrollY = window.scrollY + 110;
+        var active = null;
+        for (var i = sections.length - 1; i >= 0; i--) {
+            if (sections[i].el.offsetTop <= scrollY) { active = sections[i]; break; }
+        }
+        tocLinks.forEach(function (l) { l.classList.remove('active'); });
+        if (active) active.link.classList.add('active');
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+        anchor.addEventListener('click', function (e) {
+            var target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                e.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                history.pushState(null, null, this.getAttribute('href'));
+            }
+        });
+    });
+
+    var STORAGE_KEY = 'sl_consent';
+    var categories  = ['functional', 'analytics', 'marketing', 'preferences'];
+    var dirty       = false;
+
+    function loadPreferences() {
+        try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (e) { return {}; }
+    }
+
+    function applyPreferences(prefs) {
+        categories.forEach(function (cat) {
+            var toggle = document.getElementById('toggle-' + cat);
+            if (!toggle) return;
+            var isOn = !!prefs[cat];
+            toggle.checked = isOn;
+            updateBadge(cat, isOn);
+            updateStatus(cat, isOn);
+        });
+    }
+
+    function updateBadge(cat, on) {
+        var badge = document.getElementById('badge-' + cat);
+        if (!badge) return;
+        badge.textContent = on ? 'On' : 'Off';
+        badge.className = 'cs-badge ' + (on ? 'on' : 'off');
+    }
+
+    function updateStatus(cat, on) {
+        var status = document.getElementById('status-' + cat);
+        if (status) status.textContent = on ? 'On' : 'Off';
+    }
+
+    function markDirty() {
+        if (!dirty) {
+            dirty = true;
+            var bar = document.getElementById('cs-save-bar');
+            if (bar) bar.style.display = '';
+        }
+    }
+
+    categories.forEach(function (cat) {
+        var toggle = document.getElementById('toggle-' + cat);
+        if (!toggle) return;
+        toggle.addEventListener('change', function () {
+            updateBadge(cat, this.checked);
+            updateStatus(cat, this.checked);
+            markDirty();
+        });
+    });
+
+    window.savePreferences = function () {
+        var prefs = {};
+        categories.forEach(function (cat) {
+            var t = document.getElementById('toggle-' + cat);
+            prefs[cat] = t ? t.checked : false;
+        });
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); } catch (e) {}
+        dirty = false;
+        var bar = document.getElementById('cs-save-bar');
+        if (bar) bar.style.display = 'none';
+        showToast('Preferences saved');
+    };
+
+    window.acceptAll = function () {
+        categories.forEach(function (cat) {
+            var t = document.getElementById('toggle-' + cat);
+            if (t) { t.checked = true; updateBadge(cat, true); updateStatus(cat, true); }
+        });
+        window.savePreferences();
+    };
+
+    window.rejectAll = function () {
+        categories.forEach(function (cat) {
+            var t = document.getElementById('toggle-' + cat);
+            if (t) { t.checked = false; updateBadge(cat, false); updateStatus(cat, false); }
+        });
+        window.savePreferences();
+    };
+
+    function showToast(msg) {
+        var toast = document.getElementById('cs-toast');
+        if (!toast) return;
+        toast.textContent = msg;
+        toast.classList.add('visible');
+        setTimeout(function () { toast.classList.remove('visible'); }, 2800);
+    }
+
+    applyPreferences(loadPreferences());
+
+})();
+</script>
+
+{% endblock %}

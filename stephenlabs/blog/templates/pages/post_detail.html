@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'pages/base.html' %}
 {% block content %}
 <article>
     <h2>{{ post.title }}</h2>
@@ -24,7 +24,7 @@
     </p>
 
     {% if user == post.author %}
-        <a href="{% url 'blog:post_edit' slug=post.slug %}">Edit</a>
+        <a href="{% url 'post_edit' slug=post.slug %}">Edit</a>
     {% endif %}
 </article>
 {% endblock %}

@@ -3,7 +3,8 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.conf import settings
-from .models import Post, Subscriber
+
+from blog.models import Post, Subscriber
 
 
 def filter_posts(request, queryset=None):
@@ -73,8 +74,8 @@ def subscribe_email(request, email):
     from_email = settings.DEFAULT_FROM_EMAIL
     to = [subscriber.email]
 
-    html_content = render_to_string('pages/newsletter.html', context)
-    text_content = "Thank you for subscribing to StephenLabs."
+    html_content = render_to_string('pages/newsletter_email.html', context)
+    text_content = "Thank you for subscribing to StephensLab."
 
     # Send email
     msg = EmailMultiAlternatives(

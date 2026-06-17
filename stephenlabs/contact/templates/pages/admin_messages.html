@@ -1,0 +1,478 @@
+{% extends "pages/admin_base.html" %}
+{% block page_title %}Messages{% endblock %}
+{% block nav_messages %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+    /* ── Stats strip ─────────────────────────────────── */
+    .stats-strip {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 700px) {
+        .stats-strip { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.875rem 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        cursor: pointer;
+        transition: border-color var(--transition), background var(--transition);
+        text-decoration: none;
+    }
+
+    .stat-card:hover { border-color: var(--border-2); background: var(--surface-2); }
+    .stat-card.active-filter { border-color: var(--brand); background: var(--brand-pale); }
+
+    .stat-count {
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text);
+        letter-spacing: -0.03em;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    /* ── Filter bar ──────────────────────────────────── */
+    .filter-bar {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.75rem 1rem;
+        display: flex;
+        gap: 0.625rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+
+    .filter-bar .field-input,
+    .filter-bar .field-select {
+        font-size: 0.8125rem;
+        padding: 0.4rem 0.75rem;
+    }
+
+    .filter-bar .field-select { width: auto; min-width: 130px; }
+
+    .filter-search-wrap {
+        position: relative;
+        flex-grow: 1;
+        max-width: 320px;
+    }
+
+    .filter-search-wrap i {
+        position: absolute;
+        left: 0.625rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        font-size: 0.9375rem;
+        pointer-events: none;
+    }
+
+    .filter-search-wrap .field-input {
+        padding-left: 2rem;
+    }
+
+    .filter-bar-right {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-left: auto;
+    }
+
+    .result-count {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        color: var(--muted);
+        white-space: nowrap;
+    }
+
+    /* ── Messages table ──────────────────────────────── */
+    .messages-table-wrap {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .messages-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .messages-table thead tr {
+        background: var(--surface-2);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .messages-table thead th {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 0.625rem 1rem;
+        text-align: left;
+        white-space: nowrap;
+        user-select: none;
+    }
+
+    .messages-table tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background var(--transition);
+        cursor: pointer;
+    }
+
+    .messages-table tbody tr:last-child { border-bottom: none; }
+    .messages-table tbody tr:hover { background: var(--surface-2); }
+    .messages-table tbody tr.is-new { border-left: 2px solid var(--s-new); }
+
+    .messages-table tbody td {
+        padding: 0.75rem 1rem;
+        font-size: 0.8125rem;
+        color: var(--text-2);
+        vertical-align: middle;
+    }
+
+    .messages-table tbody td:first-child { padding-left: 1rem; }
+
+    .msg-sender { display: flex; flex-direction: column; gap: 0.2rem; }
+    .msg-sender-name { font-weight: 500; color: var(--text); font-size: 0.875rem; }
+    .msg-sender-email {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        color: var(--muted);
+    }
+
+    .msg-subject { font-size: 0.875rem; color: var(--text-2); }
+    .msg-subject strong { color: var(--text); font-weight: 500; }
+
+    .msg-preview {
+        font-size: 0.75rem;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 260px;
+    }
+
+    .msg-time {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        color: var(--muted);
+        white-space: nowrap;
+    }
+
+    .msg-actions {
+        display: flex;
+        gap: 0.375rem;
+        opacity: 0;
+        transition: opacity var(--transition);
+    }
+
+    .messages-table tbody tr:hover .msg-actions { opacity: 1; }
+
+    /* ── Empty state ─────────────────────────────────── */
+    .empty-state {
+        padding: 4rem 1.5rem;
+        text-align: center;
+    }
+
+    .empty-state-icon {
+        font-size: 2.5rem;
+        color: var(--muted-lt);
+        margin-bottom: 0.875rem;
+    }
+
+    .empty-state-title {
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-2);
+        margin-bottom: 0.375rem;
+    }
+
+    .empty-state-sub {
+        font-size: 0.875rem;
+        color: var(--muted);
+    }
+
+    /* ── Pagination ──────────────────────────────────── */
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.875rem 1rem;
+        border-top: 1px solid var(--border);
+        flex-wrap: wrap;
+    }
+
+    .pagination-info {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        color: var(--muted);
+    }
+
+    .pagination-links {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 30px;
+        height: 30px;
+        padding: 0 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        transition: all var(--transition);
+    }
+
+    .page-link:hover { color: var(--text); border-color: var(--border-2); background: var(--surface-2); }
+    .page-link.current { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .page-link.disabled { opacity: 0.35; pointer-events: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="page-eyebrow">Contact</p>
+        <h1 class="page-title">Messages</h1>
+        <p class="page-sub">All inbound contact form submissions</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'contact:contact' %}" target="_blank" class="btn btn-ghost btn-sm">
+            <i class='bx bx-link-external'></i> View form
+        </a>
+    </div>
+</div>
+
+<!-- Stats strip -->
+<div class="stats-strip">
+    <a href="?status=" class="stat-card {% if not status_filter %}active-filter{% endif %}">
+        <span class="stat-count">{{ messages.paginator.count }}</span>
+        <span class="stat-label">Total</span>
+    </a>
+    <a href="?status=new" class="stat-card {% if status_filter == 'new' %}active-filter{% endif %}">
+        <span class="stat-count" style="color:var(--s-new);">{{ new_count|default:"0" }}</span>
+        <span class="stat-label">New</span>
+    </a>
+    <a href="?status=read" class="stat-card {% if status_filter == 'read' %}active-filter{% endif %}">
+        <span class="stat-count">{{ read_count|default:"0" }}</span>
+        <span class="stat-label">Read</span>
+    </a>
+    <a href="?status=replied" class="stat-card {% if status_filter == 'replied' %}active-filter{% endif %}">
+        <span class="stat-count" style="color:var(--s-replied);">{{ replied_count|default:"0" }}</span>
+        <span class="stat-label">Replied</span>
+    </a>
+    <a href="?status=spam" class="stat-card {% if status_filter == 'spam' %}active-filter{% endif %}">
+        <span class="stat-count" style="color:var(--s-spam);">{{ spam_count|default:"0" }}</span>
+        <span class="stat-label">Spam</span>
+    </a>
+</div>
+
+<!-- Filter bar -->
+<form method="get" class="filter-bar">
+    <div class="filter-search-wrap">
+        <i class='bx bx-search'></i>
+        <input
+            type="text"
+            name="q"
+            value="{{ search_query }}"
+            placeholder="Search name, email, subject…"
+            class="field-input"
+            autocomplete="off"
+        >
+    </div>
+
+    <select name="status" class="field-select">
+        <option value="">All statuses</option>
+        {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+
+    <select name="category" class="field-select">
+        <option value="">All categories</option>
+        {% for value, label in category_choices %}
+            <option value="{{ value }}" {% if category_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit" class="btn btn-secondary btn-sm">
+        <i class='bx bx-filter-alt'></i> Filter
+    </button>
+
+    {% if search_query or status_filter or category_filter %}
+    <a href="{% url 'contact:contact_messages_list' %}" class="btn btn-ghost btn-sm">Clear</a>
+    {% endif %}
+
+    <div class="filter-bar-right">
+        <span class="result-count">{{ messages.paginator.count }} result{{ messages.paginator.count|pluralize }}</span>
+    </div>
+</form>
+
+<!-- Messages table -->
+<div class="messages-table-wrap">
+    {% if messages.object_list %}
+    <table class="messages-table">
+        <thead>
+            <tr>
+                <th>Sender</th>
+                <th>Category</th>
+                <th>Subject &amp; preview</th>
+                <th>Status</th>
+                <th>Received</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for msg in messages %}
+            <tr class="{% if msg.status == 'new' %}is-new{% endif %}"
+                onclick="window.location='{% url 'contact:contact_message_detail' msg.id %}'"
+                style="cursor:pointer;">
+                <td>
+                    <div class="msg-sender">
+                        <span class="msg-sender-name">{{ msg.name }}</span>
+                        <span class="msg-sender-email">{{ msg.email }}</span>
+                    </div>
+                </td>
+                <td>
+                    <span class="cat-chip">{{ msg.get_subject_category_display }}</span>
+                </td>
+                <td>
+                    <div class="msg-subject">
+                        {% if msg.status == 'new' %}<strong>{{ msg.subject }}</strong>{% else %}{{ msg.subject }}{% endif %}
+                    </div>
+                    <div class="msg-preview">{{ msg.message|truncatechars:80 }}</div>
+                </td>
+                <td>
+                    <span class="status-pill {{ msg.status }}" id="status-pill-{{ msg.id }}">
+                        {{ msg.get_status_display }}
+                    </span>
+                </td>
+                <td>
+                    <span class="msg-time">{{ msg.created_at|date:"M d, Y" }}<br>{{ msg.created_at|date:"H:i" }}</span>
+                </td>
+                <td onclick="event.stopPropagation()">
+                    <div class="msg-actions">
+                        <a href="{% url 'contact:contact_message_detail' msg.id %}" class="btn btn-ghost btn-sm" title="View">
+                            <i class='bx bx-show'></i>
+                        </a>
+                        <button
+                            class="btn btn-ghost btn-sm"
+                            title="Mark spam"
+                            onclick="updateStatus({{ msg.id }}, 'spam', this)"
+                        >
+                            <i class='bx bx-block' style="color:var(--s-spam);"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if messages.has_other_pages %}
+    <div class="pagination">
+        <span class="pagination-info">
+            Page {{ messages.number }} of {{ messages.paginator.num_pages }} &mdash; {{ messages.paginator.count }} total
+        </span>
+        <div class="pagination-links">
+            {% if messages.has_previous %}
+            <a href="?page={{ messages.previous_page_number }}&q={{ search_query }}&status={{ status_filter }}&category={{ category_filter }}" class="page-link">
+                <i class='bx bx-chevron-left'></i>
+            </a>
+            {% else %}
+            <span class="page-link disabled"><i class='bx bx-chevron-left'></i></span>
+            {% endif %}
+
+            {% for num in messages.paginator.page_range %}
+                {% if messages.number == num %}
+                <span class="page-link current">{{ num }}</span>
+                {% elif num > messages.number|add:'-3' and num < messages.number|add:'3' %}
+                <a href="?page={{ num }}&q={{ search_query }}&status={{ status_filter }}&category={{ category_filter }}" class="page-link">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if messages.has_next %}
+            <a href="?page={{ messages.next_page_number }}&q={{ search_query }}&status={{ status_filter }}&category={{ category_filter }}" class="page-link">
+                <i class='bx bx-chevron-right'></i>
+            </a>
+            {% else %}
+            <span class="page-link disabled"><i class='bx bx-chevron-right'></i></span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon"><i class='bx bx-inbox'></i></div>
+        <p class="empty-state-title">No messages found</p>
+        <p class="empty-state-sub">
+            {% if search_query or status_filter or category_filter %}
+                No messages match your current filters. <a href="{% url 'contact:contact_messages_list' %}" style="color:var(--brand);">Clear filters</a>
+            {% else %}
+                When visitors submit the contact form, messages will appear here.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function updateStatus(messageId, newStatus, btn) {
+        var csrfToken = '{{ csrf_token }}';
+        fetch('/contact/admin/message/' + messageId + '/update-status/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'status=' + newStatus
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                var pill = document.getElementById('status-pill-' + messageId);
+                if (pill) {
+                    pill.className = 'status-pill ' + newStatus;
+                    var labels = {new:'New', read:'Read', replied:'Replied', archived:'Archived', spam:'Spam'};
+                    pill.textContent = labels[newStatus] || newStatus;
+                }
+            }
+        })
+        .catch(function(e) { console.error('Status update failed:', e); });
+    }
+</script>
+{% endblock %}

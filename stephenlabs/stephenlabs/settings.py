@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'blog',
+    'contact',
     'lab',
     'csp',
 
@@ -50,6 +51,8 @@ INSTALLED_APPS = [
 ]
 
 SITE_ID = 1
+
+SITE_URL = 'http://127.0.0.1:8000'
 
 CKEDITOR_5_UPLOAD_PATH = 'uploads/'
 
@@ -96,6 +99,7 @@ CONTENT_SECURITY_POLICY = {
         'default-src': ("'self'",),
         'style-src': (
             "'self'",
+            "'unsafe-inline'",
             "https://fonts.googleapis.com",
             "https://cdn.jsdelivr.net",
             "https://unpkg.com",
@@ -191,9 +195,12 @@ STORAGES = {
     'default': {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
     },
-
     'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        'BACKEND': (
+            'whitenoise.storage.CompressedManifestStaticFilesStorage'
+            if not DEBUG else
+            'django.contrib.staticfiles.storage.StaticFilesStorage'
+        ),
     },
 }
 
@@ -205,6 +212,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_URL = 'signin'
 LOGOUT_URL = 'logout'
 LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
 
 
 # This part is for SMTP services.

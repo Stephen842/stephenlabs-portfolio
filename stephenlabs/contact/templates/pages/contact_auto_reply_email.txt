@@ -1,0 +1,16 @@
+Dear {{ name }},
+
+Thank you for contacting StephensLab. We have received your message and it means a lot to us that you took the time to reach out.
+
+Reference Number: #{{ id }}
+
+Our team reviews every message personally. We aim to respond within 2 to 3 business days. If your inquiry is urgent, feel free to reply directly to this email.
+
+Depth over hype. Learn deeply. Build boldly.
+
+Best regards,
+Chinazo
+Customer Support, StephensLab
+
+---
+Visit website: {{ homepage_url }}

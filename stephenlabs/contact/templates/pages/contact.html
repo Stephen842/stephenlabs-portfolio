@@ -1,0 +1,960 @@
+{% extends "pages/base.html" %}
+{% load static %}
+
+{% block content %}
+
+<style>
+    .contact-wrap {
+        width: 100%;
+        padding: 4rem 0 6rem;
+    }
+
+    .contact-hero {
+        margin-bottom: 3.5rem;
+        max-width: 640px;
+    }
+
+    .contact-hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 1.25rem;
+    }
+
+    .contact-hero-eyebrow::before {
+        content: '';
+        display: inline-block;
+        width: 18px;
+        height: 1.5px;
+        background: var(--brand);
+    }
+
+    .contact-hero-title {
+        font-family: var(--font-display);
+        font-size: clamp(2rem, 4vw, 2.75rem);
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        margin: 0 0 1rem 0;
+    }
+
+    .contact-hero-sub {
+        font-family: var(--font-body);
+        font-size: 1rem;
+        line-height: 1.75;
+        color: var(--muted);
+        margin: 0;
+        max-width: 520px;
+    }
+
+    .contact-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+        align-items: start;
+    }
+
+    @media (min-width: 1024px) {
+        .contact-grid {
+            grid-template-columns: 300px 1fr;
+            gap: 3.5rem;
+        }
+    }
+
+    .contact-sidebar {
+        position: static;
+    }
+
+    @media (min-width: 1024px) {
+        .contact-sidebar {
+            position: sticky;
+            top: 88px;
+        }
+    }
+
+    .contact-info-card {
+        background: var(--white);
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 1.25rem;
+    }
+
+    .contact-info-card-header {
+        padding: 1.125rem 1.375rem 0.875rem;
+        border-bottom: 1px solid var(--rule);
+        background: var(--surface);
+    }
+
+    .contact-info-card-label {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    .contact-info-row {
+        display: flex;
+        gap: 0.875rem;
+        align-items: flex-start;
+        padding: 0.875rem 1.375rem;
+        border-bottom: 1px solid var(--rule-lt);
+    }
+
+    .contact-info-row:last-child {
+        border-bottom: none;
+    }
+
+    .contact-info-icon {
+        width: 30px;
+        height: 30px;
+        background: var(--brand-pale);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: var(--brand);
+        font-size: 0.875rem;
+    }
+
+    .contact-info-content { min-width: 0; }
+
+    .contact-info-row-label {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.25rem;
+    }
+
+    .contact-info-row-value {
+        font-family: var(--font-body);
+        font-size: 0.875rem;
+        color: var(--ink-muted);
+        line-height: 1.5;
+        word-break: break-word;
+    }
+
+    .contact-info-row-value a {
+        color: var(--brand);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        text-decoration-thickness: 1px;
+        transition: opacity 150ms;
+    }
+
+    .contact-info-row-value a:hover { opacity: 0.75; }
+
+    .contact-socials-card {
+        background: var(--white);
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 1.25rem;
+    }
+
+    .contact-socials-head {
+        padding: 0.875rem 1.375rem;
+        background: var(--surface);
+        border-bottom: 1px solid var(--rule);
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    .contact-socials-body {
+        padding: 1rem 1.375rem;
+        display: flex;
+        gap: 0.625rem;
+        flex-wrap: wrap;
+    }
+
+    .contact-social-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.875rem;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        color: var(--ink-muted);
+        text-decoration: none;
+        transition: color 150ms, border-color 150ms, background 150ms;
+    }
+
+    .contact-social-btn:hover {
+        color: var(--brand);
+        border-color: var(--brand);
+        background: var(--brand-pale);
+    }
+
+    .contact-social-btn i { font-size: 1rem; }
+
+    .contact-quickpick {
+        background: var(--white);
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .contact-quickpick-head {
+        padding: 0.875rem 1.375rem;
+        background: var(--surface);
+        border-bottom: 1px solid var(--rule);
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    .contact-quickpick-body {
+        padding: 0.75rem 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .contact-quickpick-tag {
+        font-family: var(--font-body);
+        font-size: 0.75rem;
+        color: var(--ink-muted);
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        padding: 0.3rem 0.75rem;
+        border-radius: 100px;
+        cursor: pointer;
+        transition: color 150ms, background 150ms, border-color 150ms;
+        user-select: none;
+    }
+
+    .contact-quickpick-tag:hover,
+    .contact-quickpick-tag.selected {
+        color: var(--brand);
+        background: var(--brand-pale);
+        border-color: var(--brand);
+    }
+
+    .contact-form-panel {
+        background: var(--white);
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .contact-form-header {
+        padding: 1.25rem 1.75rem;
+        border-bottom: 1px solid var(--rule);
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .contact-form-header-left { min-width: 0; }
+
+    .contact-form-title {
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+        margin: 0 0 0.25rem 0;
+    }
+
+    .contact-form-subtitle {
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        color: var(--muted);
+        margin: 0;
+    }
+
+    .contact-form-secure {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #059669;
+        flex-shrink: 0;
+    }
+
+    .contact-form-secure::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        background: #059669;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .contact-form-body {
+        padding: 1.75rem;
+    }
+
+    .contact-flash {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+        padding: 1rem 1.25rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        font-family: var(--font-body);
+        font-size: 0.875rem;
+        line-height: 1.55;
+    }
+
+    .contact-flash.success {
+        background: #F0FDF4;
+        border-left: 3px solid #16A34A;
+        color: #15803D;
+    }
+
+    .contact-flash.error {
+        background: #FEF2F2;
+        border-left: 3px solid #DC2626;
+        color: #B91C1C;
+    }
+
+    .cf-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+    @media (min-width: 640px) {
+        .cf-row.two-col {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    .cf-field { display: flex; flex-direction: column; gap: 0.375rem; }
+
+    .cf-label {
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--ink-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .cf-required {
+        color: var(--brand);
+        font-size: 0.625rem;
+        line-height: 1;
+    }
+
+    .cf-input,
+    .cf-select,
+    .cf-textarea {
+        width: 100%;
+        font-family: var(--font-body);
+        font-size: 0.9375rem;
+        color: var(--ink);
+        background: var(--white);
+        border: 1.5px solid var(--rule);
+        border-radius: 6px;
+        padding: 0.6875rem 0.875rem;
+        outline: none;
+        transition: border-color 150ms ease, box-shadow 150ms ease;
+        appearance: none;
+        -webkit-appearance: none;
+    }
+
+    .cf-input::placeholder,
+    .cf-textarea::placeholder { color: var(--muted-lt); }
+
+    .cf-input:hover,
+    .cf-select:hover,
+    .cf-textarea:hover { border-color: #94A3B8; }
+
+    .cf-input:focus,
+    .cf-select:focus,
+    .cf-textarea:focus {
+        border-color: var(--brand);
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        background: var(--white);
+    }
+
+    .cf-input.has-error,
+    .cf-select.has-error,
+    .cf-textarea.has-error {
+        border-color: #DC2626;
+        box-shadow: 0 0 0 3px rgba(220,38,38,0.08);
+    }
+
+    .cf-select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.875rem center;
+        padding-right: 2.25rem;
+        cursor: pointer;
+    }
+
+    .cf-textarea {
+        resize: vertical;
+        min-height: 160px;
+        line-height: 1.65;
+    }
+
+    .cf-error {
+        font-family: var(--font-body);
+        font-size: 0.75rem;
+        color: #DC2626;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .cf-counter {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        color: var(--muted-lt);
+        text-align: right;
+        letter-spacing: 0.06em;
+        margin-top: 0.25rem;
+        transition: color 150ms;
+    }
+
+    .cf-counter.warn  { color: #D97706; }
+    .cf-counter.limit { color: #DC2626; }
+
+    .cf-category-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .cf-cat-chip {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-family: var(--font-body);
+        font-size: 0.75rem;
+        color: var(--muted);
+        background: var(--surface);
+        border: 1.5px solid var(--rule);
+        padding: 0.35rem 0.75rem;
+        border-radius: 100px;
+        cursor: pointer;
+        transition: all 150ms;
+        user-select: none;
+    }
+
+    .cf-cat-chip:hover,
+    .cf-cat-chip.active {
+        color: var(--brand);
+        background: var(--brand-pale);
+        border-color: var(--brand);
+    }
+
+    .cf-cat-chip i { font-size: 0.875rem; }
+
+    .cf-submit-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--rule-lt);
+        margin-top: 1.5rem;
+    }
+
+    .cf-privacy-note {
+        font-family: var(--font-body);
+        font-size: 0.75rem;
+        color: var(--muted-lt);
+        line-height: 1.5;
+        max-width: 280px;
+    }
+
+    .cf-privacy-note a {
+        color: var(--brand);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
+    .cf-submit-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--font-display);
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: var(--white);
+        background: var(--brand);
+        border: none;
+        padding: 0.75rem 1.75rem;
+        border-radius: 7px;
+        cursor: pointer;
+        transition: background 150ms, transform 100ms, box-shadow 150ms;
+        letter-spacing: 0.01em;
+        flex-shrink: 0;
+    }
+
+    .cf-submit-btn:hover {
+        background: var(--brand-deep);
+        box-shadow: 0 4px 14px rgba(37,99,235,0.25);
+    }
+
+    .cf-submit-btn:active { transform: translateY(1px); }
+
+    .cf-submit-btn svg {
+        width: 16px; height: 16px;
+        transition: transform 200ms;
+    }
+
+    .cf-submit-btn:hover svg { transform: translateX(3px); }
+
+    .contact-assurance {
+        display: flex;
+        gap: 1.25rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 1.75rem;
+        padding: 1rem 1.375rem;
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+    }
+
+    .contact-assurance-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        color: var(--ink-muted);
+    }
+
+    .contact-assurance-item::before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        background: #059669;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .cf-honeypot {
+        position: absolute;
+        left: -9999px;
+        top: -9999px;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        pointer-events: none;
+    }
+</style>
+
+<div class="contact-wrap">
+    <div class="container">
+
+        <div class="contact-hero">
+            <p class="contact-hero-eyebrow">Get in Touch</p>
+            <h1 class="contact-hero-title">Contact StephensLab</h1>
+            <p class="contact-hero-sub">
+                Have a technical question, collaboration idea, or feedback? Every message is read personally.
+                We aim to respond within 2 to 3 business days.
+            </p>
+        </div>
+
+        <div class="contact-grid">
+
+            <aside class="contact-sidebar">
+
+                <div class="contact-info-card">
+                    <div class="contact-info-card-header">
+                        <p class="contact-info-card-label">Direct contact</p>
+                    </div>
+                    <div class="contact-info-row">
+                        <div class="contact-info-icon">
+                            <i class='bx bx-envelope'></i>
+                        </div>
+                        <div class="contact-info-content">
+                            <p class="contact-info-row-label">Email</p>
+                            <p class="contact-info-row-value">
+                                <a href="mailto:ugotachisomstephen@gmail.com">ugotachisomstephen@gmail.com</a>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="contact-info-row">
+                        <div class="contact-info-icon">
+                            <i class='bx bx-time-five'></i>
+                        </div>
+                        <div class="contact-info-content">
+                            <p class="contact-info-row-label">Response time</p>
+                            <p class="contact-info-row-value">2 to 3 business days</p>
+                        </div>
+                    </div>
+                    <div class="contact-info-row">
+                        <div class="contact-info-icon">
+                            <i class='bx bx-map-pin'></i>
+                        </div>
+                        <div class="contact-info-content">
+                            <p class="contact-info-row-label">Location</p>
+                            <p class="contact-info-row-value">Abuja, Nigeria &mdash; Global Operations</p>
+                        </div>
+                    </div>
+                    <div class="contact-info-row">
+                        <div class="contact-info-icon">
+                            <i class='bx bx-globe'></i>
+                        </div>
+                        <div class="contact-info-content">
+                            <p class="contact-info-row-label">Website</p>
+                            <p class="contact-info-row-value">
+                                <a href="https://stephenlabs.io" target="_blank" rel="noopener noreferrer">stephenlabs.io</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="contact-socials-card">
+                    <div class="contact-socials-head">Connect</div>
+                    <div class="contact-socials-body">
+                        <a href="https://github.com/stephen842" target="_blank" rel="noopener noreferrer" class="contact-social-btn" aria-label="GitHub">
+                            <i class='bx bxl-github'></i> GitHub
+                        </a>
+                        <a href="https://www.linkedin.com/in/ugota-c-stephen-6b1846306/" target="_blank" rel="noopener noreferrer" class="contact-social-btn" aria-label="LinkedIn">
+                            <i class='bx bxl-linkedin-square'></i> LinkedIn
+                        </a>
+                        <a href="https://x.com/ugotastephen" target="_blank" rel="noopener noreferrer" class="contact-social-btn" aria-label="X / Twitter">
+                            <i class='bx bxl-twitter'></i> Twitter
+                        </a>
+                    </div>
+                </div>
+
+                <div class="contact-quickpick">
+                    <div class="contact-quickpick-head">What's this about?</div>
+                    <div class="contact-quickpick-body">
+                        <span class="contact-quickpick-tag" data-value="general">General</span>
+                        <span class="contact-quickpick-tag" data-value="technical">Technical</span>
+                        <span class="contact-quickpick-tag" data-value="collaboration">Collaboration</span>
+                        <span class="contact-quickpick-tag" data-value="content">Content</span>
+                        <span class="contact-quickpick-tag" data-value="bug">Bug Report</span>
+                        <span class="contact-quickpick-tag" data-value="privacy">Privacy</span>
+                        <span class="contact-quickpick-tag" data-value="other">Other</span>
+                    </div>
+                </div>
+
+            </aside>
+
+            <div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="contact-flash {% if message.tags == 'success' %}success{% else %}error{% endif %}" role="alert" aria-live="polite">
+                            <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% else %}bi-exclamation-triangle-fill{% endif %}" aria-hidden="true" style="flex-shrink:0;font-size:1rem;margin-top:1px;"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="contact-form-panel">
+
+                    <div class="contact-form-header">
+                        <div class="contact-form-header-left">
+                            <h2 class="contact-form-title">Send a Message</h2>
+                            <p class="contact-form-subtitle">All fields marked with an asterisk are required.</p>
+                        </div>
+                        <span class="contact-form-secure">Encrypted and private</span>
+                    </div>
+
+                    <div class="contact-form-body">
+                        <form method="post" novalidate autocomplete="on" id="contact-form">
+                            {% csrf_token %}
+
+                            <div class="cf-honeypot" aria-hidden="true">
+                                {{ form.website }}
+                            </div>
+
+                            <div class="cf-row two-col">
+                                <div class="cf-field">
+                                    <label for="{{ form.name.id_for_label }}" class="cf-label">
+                                        Full Name <span class="cf-required" aria-hidden="true">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="{{ form.name.html_name }}"
+                                        id="{{ form.name.id_for_label }}"
+                                        class="cf-input {% if form.name.errors %}has-error{% endif %}"
+                                        placeholder="Your full name"
+                                        value="{{ form.name.value|default:'' }}"
+                                        maxlength="200"
+                                        required
+                                        autocomplete="name"
+                                        aria-required="true"
+                                        {% if form.name.errors %}aria-invalid="true"{% endif %}
+                                    >
+                                    {% if form.name.errors %}
+                                        <span class="cf-error" role="alert">
+                                            <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                                            {{ form.name.errors.0 }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="cf-field">
+                                    <label for="{{ form.email.id_for_label }}" class="cf-label">
+                                        Email Address <span class="cf-required" aria-hidden="true">*</span>
+                                    </label>
+                                    <input
+                                        type="email"
+                                        name="{{ form.email.html_name }}"
+                                        id="{{ form.email.id_for_label }}"
+                                        class="cf-input {% if form.email.errors %}has-error{% endif %}"
+                                        placeholder="you@example.com"
+                                        value="{{ form.email.value|default:'' }}"
+                                        required
+                                        autocomplete="email"
+                                        aria-required="true"
+                                        {% if form.email.errors %}aria-invalid="true"{% endif %}
+                                    >
+                                    {% if form.email.errors %}
+                                        <span class="cf-error" role="alert">
+                                            <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                                            {{ form.email.errors.0 }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="cf-row">
+                                <div class="cf-field">
+                                    <label class="cf-label">
+                                        Subject Category <span class="cf-required" aria-hidden="true">*</span>
+                                    </label>
+                                    <div class="cf-category-strip" role="group" aria-label="Select subject category">
+                                        <button type="button" class="cf-cat-chip" data-cat="general">
+                                            <i class='bx bx-chat'></i> General
+                                        </button>
+                                        <button type="button" class="cf-cat-chip" data-cat="technical">
+                                            <i class='bx bx-code-alt'></i> Technical
+                                        </button>
+                                        <button type="button" class="cf-cat-chip" data-cat="collaboration">
+                                            <i class='bx bx-network-chart'></i> Collaboration
+                                        </button>
+                                        <button type="button" class="cf-cat-chip" data-cat="content">
+                                            <i class='bx bx-news'></i> Content
+                                        </button>
+                                        <button type="button" class="cf-cat-chip" data-cat="bug">
+                                            <i class='bx bx-bug'></i> Bug Report
+                                        </button>
+                                        <button type="button" class="cf-cat-chip" data-cat="privacy">
+                                            <i class='bx bx-shield'></i> Privacy
+                                        </button>
+                                        <button type="button" class="cf-cat-chip" data-cat="other">
+                                            <i class='bx bx-dots-horizontal-rounded'></i> Other
+                                        </button>
+                                    </div>
+                                    <select
+                                        name="{{ form.subject_category.html_name }}"
+                                        id="{{ form.subject_category.id_for_label }}"
+                                        class="cf-select"
+                                        style="display:none;"
+                                        required
+                                        aria-label="Subject category"
+                                    >
+                                        {% for value, label in form.fields.subject_category.choices %}
+                                            <option value="{{ value }}" {% if form.subject_category.value == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if form.subject_category.errors %}
+                                        <span class="cf-error" role="alert">
+                                            <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                                            {{ form.subject_category.errors.0 }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="cf-row">
+                                <div class="cf-field">
+                                    <label for="{{ form.subject.id_for_label }}" class="cf-label">
+                                        Subject <span class="cf-required" aria-hidden="true">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="{{ form.subject.html_name }}"
+                                        id="{{ form.subject.id_for_label }}"
+                                        class="cf-input {% if form.subject.errors %}has-error{% endif %}"
+                                        placeholder="Brief summary of your inquiry"
+                                        value="{{ form.subject.value|default:'' }}"
+                                        maxlength="300"
+                                        required
+                                        aria-required="true"
+                                        {% if form.subject.errors %}aria-invalid="true"{% endif %}
+                                    >
+                                    {% if form.subject.errors %}
+                                        <span class="cf-error" role="alert">
+                                            <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                                            {{ form.subject.errors.0 }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="cf-row">
+                                <div class="cf-field">
+                                    <label for="{{ form.message.id_for_label }}" class="cf-label">
+                                        Message <span class="cf-required" aria-hidden="true">*</span>
+                                    </label>
+                                    <textarea
+                                        name="{{ form.message.html_name }}"
+                                        id="{{ form.message.id_for_label }}"
+                                        class="cf-textarea {% if form.message.errors %}has-error{% endif %}"
+                                        placeholder="Please provide as much context as possible. The more detail you share, the better we can help."
+                                        rows="9"
+                                        maxlength="5000"
+                                        required
+                                        aria-required="true"
+                                        id="cf-message-textarea"
+                                        {% if form.message.errors %}aria-invalid="true"{% endif %}
+                                    >{{ form.message.value|default:'' }}</textarea>
+                                    <div class="cf-counter" id="cf-message-counter" aria-live="polite">0 / 5000</div>
+                                    {% if form.message.errors %}
+                                        <span class="cf-error" role="alert">
+                                            <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+                                            {{ form.message.errors.0 }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="cf-submit-row">
+                                <p class="cf-privacy-note">
+                                    Your data is used only to respond to this inquiry. See our
+                                    <a href="{% url 'privacy_policy' %}">Privacy Policy</a> for details.
+                                </p>
+                                <button type="submit" class="cf-submit-btn" id="cf-submit-btn">
+                                    Send Message
+                                    <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                            </div>
+
+                        </form>
+                    </div>
+                </div>
+
+                <div class="contact-assurance" role="list">
+                    <div class="contact-assurance-item" role="listitem">Responds within 2 to 3 business days</div>
+                    <div class="contact-assurance-item" role="listitem">CSRF and honeypot protected</div>
+                    <div class="contact-assurance-item" role="listitem">GDPR compliant</div>
+                    <div class="contact-assurance-item" role="listitem">Data never sold or shared</div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+
+    var textarea = document.getElementById('cf-message-textarea');
+    var counter  = document.getElementById('cf-message-counter');
+
+    if (textarea && counter) {
+        function updateCounter() {
+            var len = textarea.value.length;
+            var max = 5000;
+            counter.textContent = len + ' / ' + max;
+            counter.className = 'cf-counter';
+            if (len > max * 0.9) counter.classList.add('warn');
+            if (len >= max)      counter.classList.add('limit');
+        }
+        textarea.addEventListener('input', updateCounter);
+        updateCounter();
+    }
+
+    var chips  = document.querySelectorAll('.cf-cat-chip');
+    var select = document.getElementById('{{ form.subject_category.id_for_label }}');
+
+    function setChip(val) {
+        chips.forEach(function (c) {
+            c.classList.toggle('active', c.dataset.cat === val);
+            c.setAttribute('aria-pressed', c.dataset.cat === val ? 'true' : 'false');
+        });
+        if (select) select.value = val;
+    }
+
+    if (select && select.value) setChip(select.value);
+    else setChip('general');
+
+    chips.forEach(function (chip) {
+        chip.addEventListener('click', function () { setChip(this.dataset.cat); });
+    });
+
+    var tags = document.querySelectorAll('.contact-quickpick-tag');
+    tags.forEach(function (tag) {
+        tag.addEventListener('click', function () {
+            tags.forEach(function (t) { t.classList.remove('selected'); });
+            this.classList.add('selected');
+            setChip(this.dataset.value);
+            var panel = document.querySelector('.contact-form-panel');
+            if (panel && window.innerWidth < 1024) {
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+
+    var form   = document.getElementById('contact-form');
+    var btnEl  = document.getElementById('cf-submit-btn');
+
+    if (form && btnEl) {
+        form.addEventListener('submit', function () {
+            btnEl.disabled = true;
+            btnEl.style.opacity = '0.75';
+            btnEl.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Sending…';
+        });
+    }
+
+    setTimeout(function () {
+        document.querySelectorAll('.contact-flash').forEach(function (el) {
+            el.style.transition = 'opacity 500ms';
+            el.style.opacity = '0';
+            setTimeout(function () { el.style.display = 'none'; }, 520);
+        });
+    }, 6000);
+
+})();
+</script>
+
+<style>
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+    }
+</style>
+
+{% endblock %}
