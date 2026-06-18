@@ -7,9 +7,17 @@ from django.utils import timezone
 from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth import logout
+from django.conf import settings
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.safestring import mark_safe
 
 import markdown
-from django.utils.safestring import mark_safe
+import os
+import uuid
+
+import cloudinary, cloudinary.uploader
 
 from contact.models import ContactMessage
 from blog.models import Post, Category, Tag, Subscriber
@@ -52,21 +60,29 @@ def dashboard_home(request):
 @staff_member_required
 def post_create(request):
     """Create a new blog post"""
-    
+ 
     if request.method == 'POST':
-        form = PostForm(request.POST)
+        # request.FILES must be passed or the uploaded image
+        # never reaches form.cleaned_data / instance.featured_image
+        form = PostForm(request.POST, request.FILES)
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
             if post.status == Post.Status.PUBLISHED and not post.published_at:
                 post.published_at = timezone.now()
             post.save()
-            form.save_m2m()  # Save tags
+ 
+            # ── FIX: was form.save_m2m() — does nothing for 'tags' since
+            # it's a form-only field, not in Meta.fields, so ModelForm
+            # never registered it as an m2m field to manage. Use the
+            # explicit save_tags() method on PostForm instead. ──
+            form.save_tags(post)
+ 
             messages.success(request, f'Post "{post.title}" created successfully.')
             return redirect('lab:post_edit', post_id=post.id)
     else:
         form = PostForm()
-    
+ 
     context = {
         'form': form,
         'categories': Category.objects.all(),
@@ -75,27 +91,30 @@ def post_create(request):
         'is_edit': False,
     }
     return render(request, 'pages/admin_post_form.html', context)
-
-
+ 
+ 
 @staff_member_required
 def post_edit(request, post_id):
     """Edit an existing blog post"""
-    
+ 
     post = get_object_or_404(Post, id=post_id)
-    
+ 
     if request.method == 'POST':
-        form = PostForm(request.POST, instance=post)
+        form = PostForm(request.POST, request.FILES, instance=post)
         if form.is_valid():
             updated_post = form.save(commit=False)
             if updated_post.status == Post.Status.PUBLISHED and not updated_post.published_at:
                 updated_post.published_at = timezone.now()
             updated_post.save()
-            form.save_m2m()  # Save tags
+ 
+            # ── FIX: was form.save_m2m() — same issue as post_create above. ──
+            form.save_tags(updated_post)
+ 
             messages.success(request, f'Post "{updated_post.title}" updated successfully.')
             return redirect('lab:post_edit', post_id=post.id)
     else:
         form = PostForm(instance=post)
-    
+ 
     context = {
         'form': form,
         'post': post,
@@ -105,29 +124,27 @@ def post_edit(request, post_id):
         'is_edit': True,
     }
     return render(request, 'pages/admin_post_form.html', context)
-
-
+ 
+ 
 @staff_member_required
 def post_preview(request, post_id):
     '''Preview a blog post before publishing'''
-    
     post = get_object_or_404(Post, id=post_id)
     return render(request, 'pages/admin_post_preview.html', {'post': post})
-
-
+ 
+ 
 @staff_member_required
 @require_http_methods(['POST'])
 def post_preview_ajax(request):
     """AJAX endpoint for live preview while editing"""
     content = request.POST.get('content', '')
     title = request.POST.get('title', 'Preview')
-    
-    # Convert markdown to HTML (if you have markdown installed)
+ 
     try:
         html_content = markdown.markdown(content, extensions=['fenced_code', 'codehilite'])
-    except:
+    except Exception:
         html_content = content.replace('\n', '<br>')
-    
+ 
     return JsonResponse({
         'title': title,
         'content': html_content,
@@ -363,6 +380,31 @@ def tag_delete(request, tag_id):
     
     # If GET request, redirect to list
     return redirect('lab:tag_list')
+
+
+@staff_member_required
+@csrf_exempt
+def tinymce_upload(request):
+    """
+    Handle TinyMCE uploads for all file types and store them directly in Cloudinary.
+    """
+    if request.method == 'POST' and request.FILES.get('file'):
+        file_obj = request.FILES['file']
+
+        try:
+            # Upload to Cloudinary
+            result = cloudinary.uploader.upload(
+                file_obj,
+                folder="tinymce_uploads",
+                resource_type="auto",
+                access_mode="public"
+            )
+        
+            return JsonResponse({'location': result['secure_url']})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 
 def custom_logout(request):

@@ -444,19 +444,17 @@
     <main class="admin-main" role="main">
         
         <!-- Flash Messages with auto-dismiss -->
-        {% comment %}
-            {% if messages %}
-            <div class="flash-list" id="flash-messages">
-                {% for message in messages %}
-                <div class="flash {% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}" data-dismiss="3000">
-                    <i class="bx {% if message.tags == 'success' %}bx-check-circle{% elif message.tags == 'error' %}bx-error-circle{% else %}bx-info-circle{% endif %}"></i>
-                    {{ message }}
-                    <button class="flash-dismiss" onclick="this.parentElement.remove()" aria-label="Dismiss">×</button>
-                </div>
-                {% endfor %}
+        {% if messages %}
+        <div class="flash-list" id="flash-messages">
+            {% for message in messages %}
+            <div class="flash {% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}" data-dismiss="3000">
+                <i class="bx {% if message.tags == 'success' %}bx-check-circle{% elif message.tags == 'error' %}bx-error-circle{% else %}bx-info-circle{% endif %}"></i>
+                {{ message }}
+                <button class="flash-dismiss" onclick="this.parentElement.remove()" aria-label="Dismiss">×</button>
             </div>
-            {% endif %}
-        {% endcomment %} 
+            {% endfor %}
+        </div>
+        {% endif %}
 
         {% block content %}{% endblock %}
     </main>

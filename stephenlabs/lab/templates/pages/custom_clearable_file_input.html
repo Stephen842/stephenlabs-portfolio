@@ -1,0 +1,15 @@
+{% if widget.is_initial %}
+    <!-- Hide the default "Currently" text and file path -->
+    <div style="display: none;">
+        {{ widget.initial_text }}: {{ widget.initial_data }}
+    </div>
+    <!-- Optionally show the current file name without the "Currently" prefix -->
+    {% if widget.initial_data %}
+    <div style="margin-top: 0.5rem; margin-bottom: 0.5rem; font-size: 0.75rem; color: var(--muted);">
+        Current file: <strong style="color: var(--text-2);">{{ widget.initial_data|cut:"posts/"|truncatechars:40 }}</strong>
+    </div>
+    {% endif %}
+{% endif %}
+
+{{ widget.input_text }}:
+<input type="{{ widget.type }}" name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>

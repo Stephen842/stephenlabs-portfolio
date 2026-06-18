@@ -35,4 +35,7 @@ urlpatterns = [
 
     # Logout
     path('logout/', views.custom_logout, name='logout'),
+
+    # TinyMCE image upload endpoint
+    path('tinymce-upload/', views.tinymce_upload, name='tinymce_upload'),
 ]

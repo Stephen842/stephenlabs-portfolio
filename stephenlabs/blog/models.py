@@ -2,9 +2,11 @@ from django.db import models
 from django.conf import settings
 from django.utils.text import slugify
 from django.utils import timezone
+
 import math
-from django_ckeditor_5.fields import CKEditor5Field
 import os
+
+from tinymce.models import HTMLField
 
 
 class Category(models.Model):
@@ -48,7 +50,7 @@ class Post(models.Model):
     title = models.CharField(max_length=255)
     slug = models.SlugField(max_length=270, unique=True)
     excerpt = models.TextField(help_text='Short summary shown on blog listing pages')
-    content = CKEditor5Field('Content', config_name='default')
+    content = HTMLField()
     featured_image = models.ImageField(upload_to=post_image_path, blank=True, null=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='posts')
     tags = models.ManyToManyField(Tag, blank=True, related_name='posts')

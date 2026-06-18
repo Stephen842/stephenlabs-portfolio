@@ -2,6 +2,22 @@ from django import forms
 from blog.models import Post, Category, Tag
 from django.utils.text import slugify
 import re
+from tinymce.widgets import TinyMCE
+
+
+class CustomClearableFileInput(forms.ClearableFileInput):
+    '''Custom file input that hides the default 'Currently' text and 'Clear' checkbox'''
+
+    template_name = 'pages/custom_clearable_file_input.html'
+
+    def __init__(self, attrs=None):
+        default_attrs = {
+            'class': 'field-input',
+            'accept': 'image/jpeg,image/png,image/gif,image/webp',
+        }
+        if attrs:
+            default_attrs.update(attrs)
+        super().__init__(attrs=default_attrs)
 
 
 class CategoryForm(forms.ModelForm):
@@ -53,7 +69,8 @@ class TagForm(forms.ModelForm):
 
 
 class PostForm(forms.ModelForm):
-    """Form for creating and editing blog posts"""
+    '''Form for creating and editing blog posts'''
+
     tags = forms.ModelMultipleChoiceField(
         queryset=Tag.objects.all(),
         required=False,
@@ -74,6 +91,7 @@ class PostForm(forms.ModelForm):
     class Meta:
         model = Post
         fields = ['title', 'slug', 'category', 'excerpt', 'content', 'featured_image', 'status']
+
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'field-input',
@@ -95,17 +113,13 @@ class PostForm(forms.ModelForm):
                 'placeholder': 'A short summary of the post...',
                 'id': 'post-excerpt'
             }),
-            'content': forms.Textarea(attrs={
-                'class': 'field-textarea',
-                'rows': 20,
-                'placeholder': 'Write your post content here...',
-                'id': 'post-content'
+            'content': TinyMCE(attrs={
+                'class': 'field-textarea editor tinymce-editor',
+                'id': 'post-content',
+                'style': 'width:100%; min-height:500px;'
             }),
-            'featured_image': forms.ClearableFileInput(attrs={
-                'class': 'field-input',
-                'id': 'id_featured_image',
-                'accept': 'image/jpeg,image/png,image/gif,image/webp',
-            }),
+
+            'featured_image': CustomClearableFileInput(),
             'status': forms.Select(attrs={
                 'class': 'field-select',
                 'id': 'post-status'
@@ -123,24 +137,19 @@ class PostForm(forms.ModelForm):
             slug = slugify(self.cleaned_data.get('title', ''))
         return slug
 
-    def save(self, commit=True):
-        instance = super().save(commit=False)
+    def save_tags(self, instance):
+        '''
+        Apply selected checkbox tags + any newly typed tag names to a
+        saved Post instance. Call this AFTER instance.save() — m2m
+        relations require the instance to already have a primary key.
+        '''
+        selected_tags = list(self.cleaned_data.get('tags', []))
 
-        if commit:
-            instance.save()
-            self.save_m2m()  # saves self.fields['tags'] (the checkbox selections)
-
-            # Merge in any newly typed tags alongside the checked ones
-            new_tags_input = self.cleaned_data.get('new_tags_input', '')
-            if new_tags_input:
-                tag_names = [name.strip().lower() for name in new_tags_input.split(',') if name.strip()]
-                new_tags = []
-                for name in tag_names:
-                    slug = re.sub(r'[^a-z0-9-]', '-', name)
-                    slug = re.sub(r'-+', '-', slug).strip('-')
-                    tag, _ = Tag.objects.get_or_create(name=name, defaults={'slug': slug})
-                    new_tags.append(tag)
-                if new_tags:
-                    instance.tags.add(*new_tags)
-
+        new_tags_input = self.cleaned_data.get('new_tags_input', '')
+        if new_tags_input:
+            for name in [n.strip().lower() for n in new_tags_input.split(',') if n.strip()]:
+                slug = re.sub(r'-+', '-', re.sub(r'[^a-z0-9-]', '-', name)).strip('-')
+                tag, _ = Tag.objects.get_or_create(name=name, defaults={'slug': slug})
+                selected_tags.append(tag)
+        instance.tags.set(selected_tags)
         return instance

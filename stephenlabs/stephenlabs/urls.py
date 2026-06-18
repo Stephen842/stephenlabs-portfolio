@@ -23,15 +23,17 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # contact app
+    # TinyMCE editor
+    path('tinymce/', include('tinymce.urls')),
+
+    # Contact app
     path('contact/', include('contact.urls')),
 
-    # blog app
+    # Dashboard app (admin interface)
     path('lab/', include('lab.urls')),
 
-    # blog app
+    # Blog app (public facing)
     path('', include('blog.urls')),
-
 ]
 
 if settings.DEBUG:

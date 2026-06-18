@@ -1,4 +1,5 @@
 {% extends "pages/admin_base.html" %}
+{% load static %}
 {% block page_title %}{{ title }}{% endblock %}
 {% block nav_posts %}active{% endblock %}
 
@@ -72,15 +73,9 @@
         font-weight: 600;
         font-size: 0.8125rem;
     }
-    .sidebar-card-body {
-        padding: 1rem;
-    }
+    .sidebar-card-body { padding: 1rem; }
 
-    .tag-hint {
-        font-size: 0.6875rem;
-        color: var(--muted);
-        margin-top: 0.25rem;
-    }
+    .tag-hint { font-size: 0.6875rem; color: var(--muted); margin-top: 0.25rem; }
 
     .status-badge {
         display: inline-block;
@@ -98,10 +93,7 @@
         background: var(--surface-2);
         border-radius: var(--radius);
     }
-    .image-preview img {
-        max-width: 100%;
-        border-radius: var(--radius);
-    }
+    .image-preview img { max-width: 100%; border-radius: var(--radius); }
     .remove-image-label {
         display: inline-flex;
         align-items: center;
@@ -112,12 +104,7 @@
         color: var(--s-spam);
     }
 
-    /* File input styling */
-    .file-input-wrapper {
-        position: relative;
-        display: inline-block;
-        width: 100%;
-    }
+    .file-input-wrapper { position: relative; display: inline-block; width: 100%; }
     .file-input-wrapper input[type="file"] {
         display: block;
         width: 100%;
@@ -138,8 +125,76 @@
         cursor: pointer;
         margin-right: 0.75rem;
     }
-    .file-input-wrapper input[type="file"]::file-selector-button:hover {
-        background: var(--surface);
+    .file-input-wrapper input[type="file"]::file-selector-button:hover { background: var(--surface); }
+
+    /* ── Tag checkbox picker — same visual register as category select ── */
+    .tag-picker {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        max-height: 180px;
+        overflow-y: auto;
+        padding: 0.625rem;
+        background: var(--bg);
+        border: 1px solid var(--border-2);
+        border-radius: var(--radius);
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-2) transparent;
+    }
+    .tag-picker::-webkit-scrollbar { width: 4px; }
+    .tag-picker::-webkit-scrollbar-thumb { background: var(--border-2); }
+
+    .tag-picker:empty::before {
+        content: 'No tags yet — add one below.';
+        font-size: 0.75rem;
+        color: var(--muted-lt);
+        padding: 0.25rem;
+    }
+
+    /* Hide the raw Django checkbox, style the label as a chip */
+    .tag-chip-input { display: none; }
+
+    .tag-chip-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        padding: 0.3rem 0.625rem;
+        border-radius: 100px;
+        border: 1px solid var(--border-2);
+        background: var(--surface-2);
+        color: var(--muted);
+        cursor: pointer;
+        transition: all var(--transition);
+        user-select: none;
+    }
+
+    .tag-chip-label:hover { border-color: var(--brand); color: var(--text-2); }
+
+    .tag-chip-input:checked + .tag-chip-label {
+        background: var(--brand-pale);
+        border-color: var(--brand);
+        color: var(--brand);
+    }
+
+    .tag-chip-label::before {
+        content: '+';
+        font-size: 0.75rem;
+        line-height: 1;
+    }
+
+    .tag-chip-input:checked + .tag-chip-label::before {
+        content: '✓';
+    }
+
+    .tag-count-label {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        color: var(--muted);
+        margin-top: 0.5rem;
     }
 </style>
 {% endblock %}
@@ -170,8 +225,12 @@
     </div>
 </div>
 
+<!-- enctype="multipart/form-data" is REQUIRED for file uploads to submit at all -->
 <form method="post" enctype="multipart/form-data" id="post-form">
     {% csrf_token %}
+    
+    <!-- ═══ LOAD TINYMCE JAVASCRIPT ═══ -->
+    {{ form.media }}
 
     <div class="form-grid">
 
@@ -180,9 +239,7 @@
             <div class="field-group">
                 <label class="field-label" for="{{ form.title.id_for_label }}">Title <span style="color:var(--s-spam);">*</span></label>
                 {{ form.title }}
-                {% if form.title.errors %}
-                <p class="error-msg">{{ form.title.errors.0 }}</p>
-                {% endif %}
+                {% if form.title.errors %}<p class="error-msg">{{ form.title.errors.0 }}</p>{% endif %}
             </div>
 
             <div class="field-group">
@@ -201,22 +258,6 @@
 
             <div class="field-group">
                 <label class="field-label" for="{{ form.content.id_for_label }}">Content <span style="color:var(--s-spam);">*</span></label>
-                <div class="editor-toolbar">
-                    <button type="button" class="editor-btn" onclick="wrapText('**', '**')">Bold</button>
-                    <button type="button" class="editor-btn" onclick="wrapText('*', '*')">Italic</button>
-                    <button type="button" class="editor-btn" onclick="wrapText('`', '`')">Code</button>
-                    <button type="button" class="editor-btn" onclick="wrapText('```\n', '\n```')">Code Block</button>
-                    <button type="button" class="editor-btn" onclick="wrapText('[', '](url)')">Link</button>
-                    <button type="button" class="editor-btn" onclick="wrapText('# ', '')">Heading 1</button>
-                    <button type="button" class="editor-btn" onclick="wrapText('## ', '')">Heading 2</button>
-                    <button type="button" class="editor-btn" onclick="wrapText('- ', '')">Bullet List</button>
-                    <button type="button" class="editor-btn" onclick="wrapText('1. ', '')">Numbered List</button>
-                    {% if is_edit %}
-                    <button type="button" class="editor-btn" onclick="openPreview()">
-                        <i class='bx bx-show'></i> Preview
-                    </button>
-                    {% endif %}
-                </div>
                 {{ form.content }}
             </div>
         </div>
@@ -253,43 +294,62 @@
                 </div>
             </div>
 
+            <!-- ── Tags: now a clickable chip picker, not free text ── -->
             <div class="sidebar-card">
                 <div class="sidebar-card-header">Tags</div>
                 <div class="sidebar-card-body">
                     <div class="field-group">
-                        {{ form.tags }}
-                        <div class="tag-hint">Comma-separated tags. Example: django, python, web-development</div>
+                        <label class="field-label">Select existing tags</label>
+                        <div class="tag-picker">
+                            {% for checkbox in form.tags %}
+                                <span class="tag-chip-wrap">
+                                    {{ checkbox.tag }}
+                                    <label for="{{ checkbox.id_for_label }}" class="tag-chip-label">{{ checkbox.choice_label }}</label>
+                                </span>
+                            {% endfor %}
+                        </div>
+                        <p class="tag-count-label" id="tag-selected-count">0 selected</p>
                     </div>
+
+                    <div class="field-group" style="margin-top: 0.875rem;">
+                        <label class="field-label" for="{{ form.new_tags_input.id_for_label }}">Or add new tags</label>
+                        {{ form.new_tags_input }}
+                        <div class="tag-hint">{{ form.new_tags_input.help_text }}</div>
+                    </div>
+
                     <a href="{% url 'lab:tag_create' %}" target="_blank" class="btn btn-ghost btn-sm" style="width: 100%; justify-content: center; margin-top: 0.5rem;">
-                        <i class='bx bx-plus'></i> Add new tag
+                        <i class='bx bx-plus'></i> Manage tags
                     </a>
                 </div>
             </div>
 
-            <!-- Featured Image card with file upload -->
+            <!-- Featured Image — now bound to the actual form field -->
             <div class="sidebar-card">
                 <div class="sidebar-card-header">Featured Image</div>
                 <div class="sidebar-card-body">
                     <div class="field-group">
                         <label class="field-label" for="{{ form.featured_image.id_for_label }}">Upload Image</label>
                         <div class="file-input-wrapper">
-                            <input type="file" name="featured_image" accept="image/jpeg,image/png,image/gif,image/webp" id="id_featured_image" class="field-input">
+                            {{ form.featured_image }}
                         </div>
-                        <div class="tag-hint">Upload a featured image for your post. Recommended size: 1200x630px. Accepted formats: JPG, PNG, GIF, WebP. Max size: 5MB</div>
+                        <div class="tag-hint">Recommended size: 1200x630px. Accepted formats: JPG, PNG, GIF, WebP. Max size: 5MB</div>
+                        {% if form.featured_image.errors %}
+                        <p class="error-msg" style="color:var(--s-spam);font-size:0.75rem;margin-top:0.3rem;">{{ form.featured_image.errors.0 }}</p>
+                        {% endif %}
                     </div>
-                    
-                    <!-- Current image preview -->
-                    {% if form.instance.featured_image %}
+
+                    <!-- Current image preview — uses post.featured_image, only when editing -->
+                    {% if is_edit and post.featured_image %}
                     <div class="image-preview" id="image-preview-container">
                         <p style="font-size: 0.6875rem; color: var(--muted); margin-bottom: 0.5rem;">Current image:</p>
-                        <img src="{{ form.instance.featured_image.url }}" alt="Current featured image" id="current-image-preview">
-                        <label class="remove-image-label">
-                            <input type="checkbox" name="featured_image-clear" id="featured_image-clear">
+                        <img src="{{ post.featured_image.url }}" alt="Current featured image" id="current-image-preview">
+                        <label class="remove-image-label" for="featured_image-clear_id">
+                            <input type="checkbox" id="remove-image-toggle">
                             Remove current image
                         </label>
                     </div>
                     {% endif %}
-                    
+
                     <!-- New image preview (shows when a new file is selected) -->
                     <div id="new-image-preview" class="image-preview" style="display: none;">
                         <p style="font-size: 0.6875rem; color: var(--muted); margin-bottom: 0.5rem;">New image:</p>
@@ -359,11 +419,7 @@ if (excerptInput && excerptCounter) {
     function updateExcerptCount() {
         var len = excerptInput.value.length;
         excerptCounter.textContent = len + ' / 200 characters';
-        if (len > 200) {
-            excerptCounter.style.color = 'var(--s-spam)';
-        } else {
-            excerptCounter.style.color = 'var(--muted-lt)';
-        }
+        excerptCounter.style.color = len > 200 ? 'var(--s-spam)' : 'var(--muted-lt)';
     }
     excerptInput.addEventListener('input', updateExcerptCount);
     updateExcerptCount();
@@ -383,9 +439,7 @@ document.getElementById('post-form').addEventListener('submit', function(e) {
     var submitter = e.submitter;
     if (submitter && submitter.value === 'publish') {
         var statusSelect = document.getElementById('post-status');
-        if (statusSelect) {
-            statusSelect.value = 'published';
-        }
+        if (statusSelect) statusSelect.value = 'published';
     }
 });
 
@@ -404,7 +458,7 @@ function openPreview() {
 }
 
 // Image preview functionality
-var fileInput = document.getElementById('id_featured_image');
+var fileInput = document.getElementById('{{ form.featured_image.id_for_label }}');
 var newPreviewContainer = document.getElementById('new-image-preview');
 var newPreviewImg = document.getElementById('new-image-img');
 
@@ -424,5 +478,38 @@ if (fileInput) {
         }
     });
 }
+
+// "Remove current image" checkbox drives Django's hidden clear checkbox
+// (rendered as featured_image-clear by ClearableFileInput, kept in the DOM
+// but display:none via the custom widget template).
+var removeToggle = document.getElementById('remove-image-toggle');
+var hiddenClear  = document.getElementById('featured_image-clear_id') || document.getElementById('id_featured_image-clear');
+
+if (removeToggle && hiddenClear) {
+    removeToggle.addEventListener('change', function() {
+        hiddenClear.checked = this.checked;
+    });
+}
+
+// Tag chip picker — Django's checkbox.tag renders just the <input>,
+// label is rendered explicitly above with choice_label. Just wire the counter.
+(function() {
+    var picker = document.querySelector('.tag-picker');
+    if (!picker) return;
+
+    var checkboxes = picker.querySelectorAll('input[type="checkbox"]');
+    var counter = document.getElementById('tag-selected-count');
+
+    checkboxes.forEach(function(cb) {
+        cb.classList.add('tag-chip-input');
+        cb.addEventListener('change', updateCount);
+    });
+
+    function updateCount() {
+        var checked = picker.querySelectorAll('input[type="checkbox"]:checked').length;
+        if (counter) counter.textContent = checked + ' selected';
+    }
+    updateCount();
+})();
 </script>
 {% endblock %}

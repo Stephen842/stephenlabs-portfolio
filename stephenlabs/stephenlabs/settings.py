@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from decouple import config
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -47,40 +50,14 @@ INSTALLED_APPS = [
 
     'widget_tweaks',
     'django.contrib.humanize',
-    'django_ckeditor_5',
+    'tinymce',
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 SITE_ID = 1
 
 SITE_URL = 'http://127.0.0.1:8000'
-
-CKEDITOR_5_UPLOAD_PATH = 'uploads/'
-
-CKEDITOR_5_CONFIGS = {
-    'default': {
-        'toolbar': [
-            'heading', '|',
-            'bold', 'italic', 'link',
-            'bulletedList', 'numberedList', 'blockQuote',
-            '|', 'imageUpload', 'insertTable',
-            '|', 'undo', 'redo',
-        ],
-        'image': {
-            'toolbar': [
-                'imageTextAlternative',
-                'imageStyle:full',
-                'imageStyle:side',
-            ]
-        },
-        'table': {
-            'contentToolbar': [
-                'tableColumn',
-                'tableRow',
-                'mergeTableCells',
-            ]
-        },
-    }
-}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -103,7 +80,8 @@ CONTENT_SECURITY_POLICY = {
             "https://fonts.googleapis.com",
             "https://cdn.jsdelivr.net",
             "https://unpkg.com",
-            "https://cdn.tailwindcss.com"
+            "https://cdn.tailwindcss.com",
+            "https://cdn.tiny.cloud",
         ),
         'font-src': (
             "'self'",
@@ -116,8 +94,20 @@ CONTENT_SECURITY_POLICY = {
             "'self'",
             "https://cdn.jsdelivr.net",
             "https://unpkg.com",
-            "https://cdn.tailwindcss.com"
-
+            "https://cdn.tailwindcss.com",
+            "https://cdn.tiny.cloud",
+            "https://cloudinary.com",
+        ),
+        'img-src': (
+            "'self'",
+            "data:",
+            "https://res.cloudinary.com",
+            "https://images.unsplash.com",
+        ),
+        'connect-src': (
+            "'self'",
+            "https://res.cloudinary.com",
+            "https://api.cloudinary.com",
         ),
     }
 }
@@ -230,3 +220,80 @@ DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER')
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# TinyMCE Configuration
+TINYMCE_DEFAULT_CONFIG = {
+    'height': 400,
+    'width': '100%',
+    'menubar': 'file edit view insert format tools table help',
+    'plugins': (
+        'advlist autolink lists link image media file '
+        'charmap print preview anchor '
+        'searchreplace visualblocks code fullscreen '
+        'insertdatetime table paste code help wordcount'
+    ),
+    'toolbar': (
+        'undo redo | formatselect | bold italic underline | '
+        'alignleft aligncenter alignright alignjustify | '
+        'bullist numlist outdent indent | removeformat | help | '
+        'link image media file'
+    ),
+    'automatic_uploads': True,
+    'file_picker_types': 'file image media',
+    'images_upload_url': '/tinymce-upload/',
+    'file_picker_callback': '''
+    function(callback, value, meta) {
+        var input = document.createElement('input');
+        input.setAttribute('type', 'file');
+
+        if (meta.filetype === 'image') {
+            input.setAttribute('accept', 'image/*');
+        } else if (meta.filetype === 'media') {
+            input.setAttribute('accept', 'video/*, audio/*');
+        } else {
+            input.setAttribute('accept', '.pdf,.doc,.docx,.xls,.xlsx');
+        }
+
+        input.onchange = function() {
+            var file = this.files[0];
+            var formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/tinymce-upload/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Upload response:", data);
+                if (data.location) {
+                    if (meta.filetype === 'image') {
+                        callback(data.location, { alt: file.name });
+                    } else if (meta.filetype === 'media') {
+                        callback(data.location, { source2: data.location });
+                    } else {
+                        // For PDFs, Docs, etc.
+                        callback(data.location, { text: file.name });
+                    }
+                } else {
+                    alert("Upload failed: " + JSON.stringify(data));
+                }
+            })
+            .catch(err => {
+                alert("Upload error: " + err);
+            });
+        };
+
+        input.click();
+    }
+'''
+}
+
+
+cloudinary.config( 
+    cloud_name = config('CLOUD_NAME'),
+    api_key = config('API_KEY'),
+    api_secret = config('API_SECRET'),
+    secure = True
+)
