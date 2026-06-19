@@ -5,6 +5,7 @@ from django.utils import timezone
 
 import math
 import os
+import re as _re
 
 from tinymce.models import HTMLField
 
@@ -82,8 +83,10 @@ class Post(models.Model):
             self.published_at = timezone.now()
 
         # Auto-calculate reading time
-        words = len(self.content.split())
-        self.reading_time = math.ceil(words / 100) # 100 words per minutes
+        raw_content = self.content or ''
+        plain_text = _re.sub(r'<[^>]+>', ' ', raw_content)  # strip HTML tags
+        words = len(plain_text.split())
+        self.reading_time = max(1, math.ceil(words / 200))   # 200 wpm is standard
 
         super().save(*args, **kwargs)
 

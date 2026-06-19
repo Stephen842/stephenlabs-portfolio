@@ -16,7 +16,7 @@ from django.utils.safestring import mark_safe
 import markdown
 import os
 import uuid
-
+import logging
 import cloudinary, cloudinary.uploader
 
 from contact.models import ContactMessage
@@ -382,29 +382,68 @@ def tag_delete(request, tag_id):
     return redirect('lab:tag_list')
 
 
+logger = logging.getLogger(__name__)
+ 
+ALLOWED_TYPES = {
+    # Images
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+    # Documents
+    'application/pdf',
+    # Video
+    'video/mp4', 'video/webm',
+    # Audio
+    'audio/mpeg', 'audio/wav', 'audio/ogg',
+}
+ 
+MAX_SIZE_BYTES = 20 * 1024 * 1024  # 20MB for video/media, reasonable for all types
+
+
 @staff_member_required
 @csrf_exempt
+@require_http_methods(['POST'])
 def tinymce_upload(request):
-    """
-    Handle TinyMCE uploads for all file types and store them directly in Cloudinary.
-    """
-    if request.method == 'POST' and request.FILES.get('file'):
-        file_obj = request.FILES['file']
-
-        try:
-            # Upload to Cloudinary
-            result = cloudinary.uploader.upload(
-                file_obj,
-                folder="tinymce_uploads",
-                resource_type="auto",
-                access_mode="public"
-            )
-        
-            return JsonResponse({'location': result['secure_url']})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-        
-    return JsonResponse({'error': 'Invalid request'}, status=400)
+    '''
+    Handle TinyMCE file uploads (images, documents, media) via Cloudinary.
+    Called from the file_picker_callback configured in TINYMCE_DEFAULT_CONFIG.
+ 
+    TinyMCE expects back:  {"location": "<public_url>"}
+    On error it expects:   {"error": "<message>"} with a 4xx/5xx status.
+    '''
+    file_obj = request.FILES.get('file')
+ 
+    if not file_obj:
+        return JsonResponse({'error': 'No file received.'}, status=400)
+ 
+    if file_obj.content_type not in ALLOWED_TYPES:
+        return JsonResponse(
+            {'error': f'File type "{file_obj.content_type}" is not allowed.'},
+            status=400
+        )
+ 
+    if file_obj.size > MAX_SIZE_BYTES:
+        return JsonResponse(
+            {'error': f'File exceeds the {MAX_SIZE_BYTES // (1024*1024)}MB size limit.'},
+            status=400
+        )
+ 
+    try:
+        result = cloudinary.uploader.upload(
+            file_obj,
+            folder='stephenslab/posts',
+            resource_type='auto',
+            access_mode='public',
+            use_filename=False,
+            unique_filename=True,
+        )
+        return JsonResponse({'location': result['secure_url']})
+ 
+    except cloudinary.exceptions.Error as e:
+        logger.error('Cloudinary upload failed: %s', str(e))
+        return JsonResponse({'error': 'Upload failed. Please try again.'}, status=500)
+ 
+    except Exception as e:
+        logger.exception('Unexpected error during TinyMCE upload')
+        return JsonResponse({'error': 'An unexpected error occurred.'}, status=500)
 
 
 def custom_logout(request):

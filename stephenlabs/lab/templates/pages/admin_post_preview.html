@@ -629,4 +629,73 @@ function setViewport(size, btn) {
     update();
 })();
 </script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" crossorigin="anonymous"> 
+<style>
+    /* Match Prism output to your StephenLabs token system */
+    pre[class*="language-"],
+    code[class*="language-"] {
+        font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+        font-size: 0.875rem;
+        line-height: 1.65;
+    }
+    pre[class*="language-"] {
+        background: #0D1117 !important;
+        border: 1px solid #21262D;
+        border-radius: 6px;
+        padding: 1.125rem 1.25rem;
+        margin: 1.5rem 0;
+        overflow-x: auto;
+        position: relative;
+    }
+    /* Language label top-right of each block */
+    pre[class*="language-"][data-lang]::after {
+        content: attr(data-lang);
+        position: absolute;
+        top: 0.5rem;
+        right: 0.875rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #484F58;
+        pointer-events: none;
+    }
+</style>
+ 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" crossorigin="anonymous"></script>
+ 
+<script>
+    (function () {
+        // TinyMCE codesample outputs: <pre class="language-python"><code>...</code></pre>
+        // Prism needs the class on <code>, not just <pre> — mirror it down.
+        function preparePrism() {
+            document.querySelectorAll('pre[class*="language-"]').forEach(function (pre) {
+                var match = pre.className.match(/language-([\w-]+)/);
+                if (!match) return;
+                var lang = match[1];
+                pre.setAttribute('data-lang', lang);
+                var code = pre.querySelector('code');
+                if (!code) {
+                    code = document.createElement('code');
+                    code.className = 'language-' + lang;
+                    code.textContent = pre.textContent;
+                    pre.textContent = '';
+                    pre.appendChild(code);
+                } else if (!code.className.includes('language-')) {
+                    code.classList.add('language-' + lang);
+                }
+            });
+            if (window.Prism) Prism.highlightAll();
+        }
+    
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', preparePrism);
+        } else {
+            preparePrism();
+        }
+    })();
+</script>
 {% endblock %}

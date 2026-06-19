@@ -14,8 +14,6 @@ from pathlib import Path
 import os
 from decouple import config
 import cloudinary
-import cloudinary.uploader
-import cloudinary.api
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -81,6 +79,7 @@ CONTENT_SECURITY_POLICY = {
             "https://cdn.jsdelivr.net",
             "https://unpkg.com",
             "https://cdn.tailwindcss.com",
+            "https://cdnjs.cloudflare.com",
             "https://cdn.tiny.cloud",
         ),
         'font-src': (
@@ -88,19 +87,22 @@ CONTENT_SECURITY_POLICY = {
             "https://fonts.gstatic.com",
             "https://cdn.jsdelivr.net",
             "https://unpkg.com",
-            "https://cdn.tailwindcss.com"
+            "https://cdn.tailwindcss.com",
         ),
         'script-src': (
             "'self'",
+            "'unsafe-inline'",
+            "'unsafe-eval'",
             "https://cdn.jsdelivr.net",
             "https://unpkg.com",
             "https://cdn.tailwindcss.com",
+            "https://cdnjs.cloudflare.com",
             "https://cdn.tiny.cloud",
-            "https://cloudinary.com",
         ),
         'img-src': (
             "'self'",
             "data:",
+            "blob:",
             "https://res.cloudinary.com",
             "https://images.unsplash.com",
         ),
@@ -108,9 +110,11 @@ CONTENT_SECURITY_POLICY = {
             "'self'",
             "https://res.cloudinary.com",
             "https://api.cloudinary.com",
+            "https://api.tiny.cloud",
         ),
     }
 }
+
 
 ROOT_URLCONF = 'stephenlabs.urls'
 
@@ -224,24 +228,111 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # TinyMCE Configuration
 TINYMCE_DEFAULT_CONFIG = {
-    'height': 400,
+    'skin': 'oxide-dark',
+    'content_css': 'dark',
+    'height': 580,
+    'min_height': 400,
     'width': '100%',
     'menubar': 'file edit view insert format tools table help',
+    'promotion': False,
+    'branding': False,
+ 
     'plugins': (
-        'advlist autolink lists link image media file '
-        'charmap print preview anchor '
-        'searchreplace visualblocks code fullscreen '
-        'insertdatetime table paste code help wordcount'
+        'advlist autolink lists link image charmap'
+        'preview anchor searchreplace visualblocks '
+        'code fullscreen insertdatetime media table '
+        'codesample wordcount autoresize quickbars help'
     ),
+ 
     'toolbar': (
-        'undo redo | formatselect | bold italic underline | '
+        'undo redo | blocks fontsizeinput | '
+        'bold italic underline strikethrough forecolor backcolor | '
         'alignleft aligncenter alignright alignjustify | '
-        'bullist numlist outdent indent | removeformat | help | '
-        'link image media file'
+        'bullist numlist outdent indent | '
+        'link image media table codesample | '
+        'removeformat code fullscreen | help'
     ),
+ 
+    'toolbar_mode': 'sliding',
+ 
+    'content_style': '''
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 15px;
+            line-height: 1.75;
+            background-color: #0D1117;
+            color: #C9D1D9;
+            padding: 1rem 1.5rem;
+            max-width: 100%;
+        }
+        h1, h2, h3, h4 {
+            color: #E6EDF3;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.3;
+        }
+        h2 { border-bottom: 1px solid #21262D; padding-bottom: 0.5rem; }
+        p { margin: 0 0 1.25rem; }
+        a { color: #2F81F7; }
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875em;
+            background: #161B22;
+            border: 1px solid #21262D;
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            color: #2F81F7;
+        }
+        pre {
+            background: #161B22 !important;
+            border: 1px solid #21262D;
+            border-radius: 6px;
+            padding: 1rem 1.25rem;
+            overflow-x: auto;
+        }
+        pre code { background: none; border: none; padding: 0; color: #C9D1D9; }
+        blockquote {
+            border-left: 3px solid #2563EB;
+            padding-left: 1rem;
+            margin-left: 0;
+            color: #7D8590;
+            font-style: italic;
+        }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #21262D; padding: 0.5rem 0.75rem; }
+        th { background: #1C2128; color: #C9D1D9; font-size: 0.875rem; }
+        img { max-width: 100%; border-radius: 6px; }
+    ''',
+ 
+    'codesample_languages': [
+        {'text': 'Python', 'value': 'python'},
+        {'text': 'JavaScript', 'value': 'javascript'},
+        {'text': 'TypeScript', 'value': 'typescript'},
+        {'text': 'HTML/XML', 'value': 'markup'},
+        {'text': 'CSS', 'value': 'css'},
+        {'text': 'Bash', 'value': 'bash'},
+        {'text': 'JSON', 'value': 'json'},
+        {'text': 'SQL', 'value': 'sql'},
+        {'text': 'YAML', 'value': 'yaml'},
+        {'text': 'Dockerfile', 'value': 'docker'},
+        {'text': 'Solidity', 'value': 'solidity'},
+        {'text': 'Rust', 'value': 'rust'},
+        {'text': 'Go', 'value': 'go'},
+    ],
+ 
+    # ── Upload config ──────────────────────────────────────────────────────
+    # Points to your tinymce_upload view — note this matches your lab/urls.py
+    # path: path('tinymce-upload/', views.tinymce_upload, name='tinymce_upload')
+    # But that view is under the 'lab/' prefix, so the full URL is /lab/tinymce-upload/
+    # UNLESS you also registered it at the top level.
+    # Check your main urls.py and use whichever matches.
+    'images_upload_url': '/lab/tinymce-upload/',
     'automatic_uploads': True,
     'file_picker_types': 'file image media',
-    'images_upload_url': '/tinymce-upload/',
+ 
+    # ── FIX: file_picker_callback now sends X-CSRFToken ──────────────────
+    # This removes the need for @csrf_exempt on the view entirely.
     'file_picker_callback': '''
     function(callback, value, meta) {
         var input = document.createElement('input');
@@ -250,46 +341,71 @@ TINYMCE_DEFAULT_CONFIG = {
         if (meta.filetype === 'image') {
             input.setAttribute('accept', 'image/*');
         } else if (meta.filetype === 'media') {
-            input.setAttribute('accept', 'video/*, audio/*');
+            input.setAttribute('accept', 'video/*,audio/*');
         } else {
             input.setAttribute('accept', '.pdf,.doc,.docx,.xls,.xlsx');
         }
 
         input.onchange = function() {
             var file = this.files[0];
+            if (!file) return;
+
             var formData = new FormData();
             formData.append('file', file);
 
-            fetch('/tinymce-upload/', {
+            // Get CSRF token from cookie - more reliable method
+            function getCsrfToken() {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    if (cookie.startsWith('csrftoken=')) {
+                        return cookie.substring('csrftoken='.length);
+                    }
+                }
+                return '';
+            }
+
+            var csrfToken = getCsrfToken();
+
+            fetch('/lab/tinymce-upload/', {
                 method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Upload response:", data);
+            .then(function(response) {
+                if (!response.ok) {
+                    return response.json().then(function(data) {
+                        throw new Error(data.error || 'Upload failed');
+                    });
+                }
+                return response.json();
+            })
+            .then(function(data) {
                 if (data.location) {
                     if (meta.filetype === 'image') {
                         callback(data.location, { alt: file.name });
                     } else if (meta.filetype === 'media') {
-                        callback(data.location, { source2: data.location });
+                        callback(data.location);
                     } else {
-                        // For PDFs, Docs, etc.
                         callback(data.location, { text: file.name });
                     }
                 } else {
-                    alert("Upload failed: " + JSON.stringify(data));
+                    console.error('TinyMCE upload error:', data.error || data);
+                    alert('Upload failed: ' + (data.error || 'Unknown error'));
                 }
             })
-            .catch(err => {
-                alert("Upload error: " + err);
+            .catch(function(err) {
+                console.error('TinyMCE upload failed:', err);
+                alert('Upload failed: ' + err.message);
             });
         };
 
         input.click();
     }
-'''
+    '''
 }
-
 
 cloudinary.config( 
     cloud_name = config('CLOUD_NAME'),
