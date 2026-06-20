@@ -1,30 +1,869 @@
-{% extends 'pages/base.html' %}
+{% extends "pages/base.html" %}
+{% load static %}
+
 {% block content %}
-<article>
-    <h2>{{ post.title }}</h2>
 
-    {% if post.status == 'draft' %}
-    <span style="color:red; font-weight:bold;">DRAFT</span>
-    {% endif %}
+<style>
+    /* ════════════════════════════════════════════════════════════════
+       POST DETAIL — extends base.html tokens. Reading-first layout
+       with a sticky side rail: terminal progress bar + mini TOC.
+       ════════════════════════════════════════════════════════════════ */
 
-    <p>
-        <strong>Category:</strong> {{ post.category.name }} |
-        <strong>Reading Time:</strong> {{ post.reading_time }} min
-    </p>
+    .pd-wrap {
+        display: grid;
+        grid-template-columns: 1fr 220px;
+        gap: 3.5rem;
+        align-items: start;
+    }
 
+    @media (max-width: 980px) {
+        .pd-wrap { grid-template-columns: 1fr; gap: 0; }
+    }
+
+    /* ── Breadcrumb ────────────────────────────────────────────────── */
+    .pd-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-bottom: 2rem;
+    }
+
+    .pd-breadcrumb a { color: var(--muted); transition: color 150ms; }
+    .pd-breadcrumb a:hover { color: var(--brand); }
+    .pd-breadcrumb span { color: var(--rule); }
+    .pd-breadcrumb .pd-current { color: var(--ink-muted); }
+
+    /* ── Article header ────────────────────────────────────────────── */
+    .pd-header { max-width: 720px; margin-bottom: 2.5rem; }
+
+    .pd-cat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--brand);
+        background: var(--brand-pale);
+        padding: 0.3rem 0.75rem;
+        border-radius: 100px;
+        margin-bottom: 1.25rem;
+        text-decoration: none;
+        transition: background 150ms;
+    }
+
+    .pd-cat-pill:hover { background: rgba(37,99,235,0.18); }
+
+    .pd-title {
+        font-family: var(--font-display);
+        font-size: clamp(1.875rem, 4.5vw, 3rem);
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.03em;
+        line-height: 1.12;
+        margin-bottom: 1.25rem;
+    }
+
+    .pd-excerpt {
+        font-family: var(--font-body);
+        font-size: 1.1875rem;
+        line-height: 1.6;
+        color: var(--muted);
+        margin-bottom: 1.75rem;
+    }
+
+    /* Byline + meta strip — terminal vernacular, consistent with list page */
+    .pd-byline {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+        padding: 1.125rem 0;
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .pd-avatar {
+        width: 42px; height: 42px;
+        border-radius: 50%;
+        background: var(--brand-pale);
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-display);
+        font-size: 0.9375rem;
+        font-weight: 700;
+        color: var(--brand);
+        flex-shrink: 0;
+    }
+
+    .pd-byline-text { display: flex; flex-direction: column; gap: 0.2rem; }
+
+    .pd-author-name {
+        font-family: var(--font-body);
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: var(--ink);
+    }
+
+    .pd-meta-line {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+    }
+
+    .pd-meta-line .pd-dot { color: var(--rule); }
+
+    .pd-density {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .pd-density-track {
+        width: 26px; height: 4px;
+        background: var(--rule);
+        border-radius: 2px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .pd-density-fill { height: 100%; background: var(--brand); border-radius: 2px; }
+
+    /* Share row, right-aligned within byline on wide screens */
+    .pd-share {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    .pd-share-btn {
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        border: 1px solid var(--rule);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--muted);
+        font-size: 0.9375rem;
+        transition: all 150ms;
+        background: var(--white);
+        cursor: pointer;
+    }
+
+    .pd-share-btn:hover { color: var(--brand); border-color: var(--brand); background: var(--brand-pale); }
+
+    /* ── Featured image ────────────────────────────────────────────── */
+    .pd-featured-image {
+        max-width: 720px;
+        margin-bottom: 2.5rem;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        aspect-ratio: 16/9;
+        background: linear-gradient(135deg, var(--brand-deep) 0%, var(--brand) 55%, #60A5FA 100%);
+    }
+
+    .pd-featured-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* ── Article body — the reading column ────────────────────────── */
+    .pd-body {
+        max-width: 720px;
+        font-family: var(--font-body);
+        font-size: 1.125rem;
+        line-height: 1.85;
+        color: var(--ink-muted);
+    }
+
+    .pd-body h1, .pd-body h2, .pd-body h3, .pd-body h4 {
+        font-family: var(--font-display);
+        color: var(--ink);
+        letter-spacing: -0.02em;
+        scroll-margin-top: 100px;
+    }
+
+    .pd-body h2 {
+        font-size: 1.625rem;
+        font-weight: 700;
+        margin: 2.75rem 0 1.125rem;
+        padding-bottom: 0.625rem;
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .pd-body h3 {
+        font-size: 1.3125rem;
+        font-weight: 600;
+        margin: 2.25rem 0 0.875rem;
+    }
+
+    .pd-body p { margin: 0 0 1.5rem; }
+
+    .pd-body a {
+        color: var(--brand);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        text-decoration-thickness: 1px;
+    }
+    .pd-body a:hover { opacity: 0.8; }
+
+    .pd-body strong { color: var(--ink); font-weight: 600; }
+
+    .pd-body ul, .pd-body ol { margin: 0 0 1.5rem 1.5rem; }
+    .pd-body li { margin: 0.4rem 0; }
+
+    .pd-body blockquote {
+        border-left: 3px solid var(--brand);
+        padding: 0.25rem 0 0.25rem 1.25rem;
+        margin: 1.75rem 0;
+        color: var(--muted);
+        font-style: italic;
+        font-size: 1.0625rem;
+    }
+
+    .pd-body img {
+        max-width: 100%;
+        border-radius: var(--radius-md);
+        margin: 1.75rem 0;
+        display: block;
+    }
+
+    .pd-body code {
+        font-family: var(--font-mono);
+        font-size: 0.875em;
+        background: var(--surface-alt);
+        border: 1px solid var(--rule);
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        color: var(--brand-deep);
+    }
+
+    /* Code blocks rendered via Prism — light overrides to match StephenLabs ink */
+    .pd-body pre[class*="language-"] {
+        margin: 1.75rem 0 !important;
+        border-radius: var(--radius-md) !important;
+    }
+
+    .pd-body table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1.75rem 0;
+        font-size: 0.9375rem;
+    }
+
+    .pd-body th, .pd-body td {
+        border: 1px solid var(--rule);
+        padding: 0.625rem 0.875rem;
+        text-align: left;
+    }
+
+    .pd-body th {
+        background: var(--surface-alt);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+    }
+
+    /* ── Tags footer ───────────────────────────────────────────────── */
+    .pd-tags-footer {
+        max-width: 720px;
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        flex-wrap: wrap;
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--rule);
+    }
+
+    .pd-tags-label {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    .pd-tag-pill {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--ink-muted);
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        padding: 0.3rem 0.75rem;
+        border-radius: 100px;
+        text-decoration: none;
+        transition: all 150ms;
+    }
+
+    .pd-tag-pill:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-pale); }
+
+    /* ── Author card ───────────────────────────────────────────────── */
+    .pd-author-card {
+        max-width: 720px;
+        display: flex;
+        gap: 1.125rem;
+        align-items: flex-start;
+        margin-top: 2.5rem;
+        padding: 1.75rem;
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: var(--radius-lg);
+    }
+
+    .pd-author-card-avatar {
+        width: 52px; height: 52px;
+        border-radius: 50%;
+        background: var(--brand-pale);
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-display);
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--brand);
+        flex-shrink: 0;
+    }
+
+    .pd-author-card-label {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.3rem;
+    }
+
+    .pd-author-card-name {
+        font-family: var(--font-display);
+        font-size: 1.0625rem;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 0.375rem;
+    }
+
+    .pd-author-card-bio {
+        font-family: var(--font-body);
+        font-size: 0.875rem;
+        color: var(--muted);
+        line-height: 1.6;
+    }
+
+    /* ── Sticky side rail (desktop only) ──────────────────────────── */
+    .pd-rail {
+        position: sticky;
+        top: 88px;
+        display: flex;
+        flex-direction: column;
+        gap: 1.75rem;
+    }
+
+    @media (max-width: 980px) { .pd-rail { display: none; } }
+
+    .pd-rail-block { }
+
+    .pd-rail-label {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.75rem;
+    }
+
+    /* Terminal-style reading progress — the signature element */
+    .pd-progress-terminal {
+        background: var(--ink);
+        border-radius: var(--radius-md);
+        padding: 0.875rem 1rem;
+        font-family: var(--font-mono);
+    }
+
+    .pd-progress-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.5);
+        margin-bottom: 0.625rem;
+    }
+
+    .pd-progress-row::before {
+        content: '$';
+        color: #4ADE80;
+    }
+
+    .pd-progress-bar-track {
+        font-size: 0.8125rem;
+        color: var(--brand);
+        letter-spacing: -0.5px;
+        line-height: 1.4;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
+    .pd-progress-pct {
+        display: block;
+        margin-top: 0.5rem;
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.6);
+    }
+
+    .pd-progress-pct strong { color: #fff; font-weight: 600; }
+
+    /* Mini table of contents */
+    .pd-toc {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+        border-left: 1px solid var(--rule);
+    }
+
+    .pd-toc a {
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        color: var(--muted);
+        padding: 0.375rem 0 0.375rem 0.875rem;
+        border-left: 2px solid transparent;
+        margin-left: -1px;
+        text-decoration: none;
+        line-height: 1.4;
+        transition: all 150ms;
+        display: block;
+    }
+
+    .pd-toc a:hover { color: var(--ink-muted); }
+
+    .pd-toc a.is-active {
+        color: var(--brand);
+        border-left-color: var(--brand);
+        font-weight: 500;
+    }
+
+    .pd-toc a.pd-toc-h3 {
+        padding-left: 1.5rem;
+        font-size: 0.75rem;
+    }
+
+    .pd-toc-empty {
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        color: var(--muted-lt);
+        font-style: italic;
+        padding-left: 0.875rem;
+    }
+
+    /* Back to top */
+    .pd-back-top {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--muted);
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        transition: color 150ms;
+    }
+
+    .pd-back-top:hover { color: var(--brand); }
+
+    /* ── Related posts ─────────────────────────────────────────────── */
+    .pd-related {
+        margin-top: 5rem;
+        padding-top: 3rem;
+        border-top: 1px solid var(--rule);
+    }
+
+    .pd-related-header {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 1.5rem;
+    }
+
+    .pd-related-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .pd-related-card {
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .pd-related-thumb {
+        aspect-ratio: 16/10;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        background: linear-gradient(135deg, var(--brand-deep) 0%, var(--brand) 100%);
+        display: flex; align-items: center; justify-content: center;
+    }
+
+    .pd-related-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 400ms; }
+    .pd-related-card:hover .pd-related-thumb img { transform: scale(1.04); }
+
+    .pd-related-thumb-letter {
+        font-family: var(--font-mono);
+        font-size: 2rem;
+        font-weight: 700;
+        color: rgba(255,255,255,0.3);
+    }
+
+    .pd-related-meta {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        color: var(--muted);
+    }
+
+    .pd-related-title {
+        font-family: var(--font-display);
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: var(--ink);
+        line-height: 1.35;
+        transition: color 150ms;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .pd-related-card:hover .pd-related-title { color: var(--brand); }
+
+    /* ── Mobile reading progress (top bar) ────────────────────────── */
+    .pd-mobile-progress {
+        display: none;
+        position: sticky;
+        top: 64px;
+        height: 2px;
+        background: var(--rule);
+        z-index: 40;
+        margin: 0 -1.5rem 0;
+    }
+
+    @media (max-width: 980px) {
+        .pd-mobile-progress { display: block; }
+    }
+
+    .pd-mobile-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: var(--brand);
+        transition: width 80ms linear;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .pd-related-thumb img { transition: none; }
+    }
+</style>
+
+<!-- Mobile-only top progress strip -->
+<div class="pd-mobile-progress"><div class="pd-mobile-progress-fill" id="pd-mobile-fill"></div></div>
+
+<div class="pd-wrap">
+
+    <!-- ══ MAIN COLUMN ══════════════════════════════════════════════ -->
     <div>
-        {{ post.content|safe }}
+
+        <nav class="pd-breadcrumb" aria-label="Breadcrumb">
+            <a href="{% url 'post_list' %}">Articles</a>
+            <span>/</span>
+            <a href="{% url 'post_list' %}?category={{ post.category.slug }}">{{ post.category.name }}</a>
+            <span>/</span>
+            <span class="pd-current">{{ post.title|truncatechars:40 }}</span>
+        </nav>
+
+        <header class="pd-header">
+            <a href="{% url 'post_list' %}?category={{ post.category.slug }}" class="pd-cat-pill">{{ post.category.name }}</a>
+            <h1 class="pd-title">{{ post.title }}</h1>
+            {% if post.excerpt %}
+            <p class="pd-excerpt">{{ post.excerpt }}</p>
+            {% endif %}
+
+            <div class="pd-byline">
+                <div class="pd-avatar">
+                    {% if post.author.first_name %}{{ post.author.first_name.0 }}{% else %}{{ post.author.username.0|upper }}{% endif %}
+                </div>
+                <div class="pd-byline-text">
+                    <span class="pd-author-name">{{ post.author.get_full_name|default:post.author.username }}</span>
+                    <span class="pd-meta-line">
+                        <span>{% if post.published_at %}{{ post.published_at|date:"M d, Y" }}{% else %}{{ post.created_at|date:"M d, Y" }}{% endif %}</span>
+                        <span class="pd-dot">&middot;</span>
+                        <span class="pd-density">
+                            {{ post.reading_time }}m read
+                            <span class="pd-density-track"><span class="pd-density-fill" style="width:{% widthratio post.reading_time 20 100 %}%;"></span></span>
+                        </span>
+                    </span>
+                </div>
+
+                <div class="pd-share">
+                    <button type="button" class="pd-share-btn" id="pd-copy-link" title="Copy link" aria-label="Copy link to clipboard">
+                        <i class='bx bx-link'></i>
+                    </button>
+                    <a href="https://x.com/intent/tweet?text={{ post.title|urlencode }}&url={{ request.build_absolute_uri|urlencode }}" target="_blank" rel="noopener noreferrer" class="pd-share-btn" aria-label="Share on X">
+                        <i class='bx bxl-twitter'></i>
+                    </a>
+                    <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.build_absolute_uri|urlencode }}" target="_blank" rel="noopener noreferrer" class="pd-share-btn" aria-label="Share on LinkedIn">
+                        <i class='bx bxl-linkedin-square'></i>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        {% if post.featured_image %}
+        <div class="pd-featured-image">
+            <img src="{{ post.featured_image.url }}" alt="{{ post.title }}">
+        </div>
+        {% endif %}
+
+        <article class="pd-body" id="pd-article-body">
+            {% autoescape off %}{{ post.content }}{% endautoescape %}
+        </article>
+
+        {% if post.tags.all %}
+        <div class="pd-tags-footer">
+            <span class="pd-tags-label">Tagged</span>
+            {% for tag in post.tags.all %}
+            <a href="{% url 'post_list' %}?tag={{ tag.slug }}" class="pd-tag-pill">{{ tag.name }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Author card -->
+        <div class="pd-author-card">
+            <div class="pd-author-card-avatar">
+                {% if post.author.first_name %}{{ post.author.first_name.0 }}{% else %}{{ post.author.username.0|upper }}{% endif %}
+            </div>
+            <div>
+                <p class="pd-author-card-label">Written by</p>
+                <p class="pd-author-card-name">{{ post.author.get_full_name|default:post.author.username }}</p>
+                <p class="pd-author-card-bio">
+                    Backend engineer and technical publisher at StephenLabs, focused on
+                    blockchain, Web3, Python backend engineering, and DevOps practices.
+                </p>
+            </div>
+        </div>
+
+        <!-- Related posts -->
+        {% if query_post %}
+        <div class="pd-related">
+            <p class="pd-related-header">Related articles</p>
+            <div class="pd-related-grid">
+                {% for related in query_post %}
+                <a href="{% url 'post_detail' related.slug %}" class="pd-related-card">
+                    <div class="pd-related-thumb">
+                        {% if related.featured_image %}
+                            <img src="{{ related.featured_image.url }}" alt="{{ related.title }}">
+                        {% else %}
+                            <span class="pd-related-thumb-letter">{{ related.title|first|upper }}</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <p class="pd-related-meta">{{ related.category.slug }}:: {{ related.reading_time }}m</p>
+                        <p class="pd-related-title">{{ related.title }}</p>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 
-    <p>
-        <strong>Tags:</strong>
-        {% for tag in post.tags.all %}
-            <a href="#">{{ tag.name }}</a>{% if not forloop.last %}, {% endif %}
-        {% endfor %}
-    </p>
+    <!-- ══ STICKY SIDE RAIL (desktop) ══════════════════════════════════ -->
+    <aside class="pd-rail">
 
-    {% if user == post.author %}
-        <a href="{% url 'post_edit' slug=post.slug %}">Edit</a>
-    {% endif %}
-</article>
+        <!-- Terminal-style reading progress — signature element -->
+        <div class="pd-rail-block">
+            <p class="pd-rail-label">Reading progress</p>
+            <div class="pd-progress-terminal">
+                <div class="pd-progress-row">reading-status --watch</div>
+                <div class="pd-progress-bar-track" id="pd-terminal-bar">[░░░░░░░░░░░░░░░░░░░░]</div>
+                <span class="pd-progress-pct"><strong id="pd-progress-num">0</strong>% complete</span>
+            </div>
+        </div>
+
+        <!-- Mini TOC, auto-generated from article headings -->
+        <div class="pd-rail-block">
+            <p class="pd-rail-label">On this page</p>
+            <nav class="pd-toc" id="pd-toc">
+                <span class="pd-toc-empty">Loading sections&hellip;</span>
+            </nav>
+        </div>
+
+        <button type="button" class="pd-back-top" id="pd-back-top">
+            <i class='bx bx-up-arrow-alt'></i> Back to top
+        </button>
+
+    </aside>
+
+</div>
+
+<script>
+(function () {
+    var article = document.getElementById('pd-article-body');
+    if (!article) return;
+
+    // ── Build TOC from h2/h3 inside the article body ────────────────
+    var toc = document.getElementById('pd-toc');
+    var headings = article.querySelectorAll('h2, h3');
+
+    if (headings.length === 0) {
+        toc.innerHTML = '<span class="pd-toc-empty">No sections in this article</span>';
+    } else {
+        var tocHtml = '';
+        headings.forEach(function (h, i) {
+            if (!h.id) h.id = 'pd-section-' + i;
+            var cls = h.tagName === 'H3' ? ' pd-toc-h3' : '';
+            tocHtml += '<a href="#' + h.id + '" class="pd-toc-link' + cls + '" data-target="' + h.id + '">' + h.textContent + '</a>';
+        });
+        toc.innerHTML = tocHtml;
+    }
+
+    // Smooth scroll for TOC links
+    toc.addEventListener('click', function (e) {
+        var link = e.target.closest('a');
+        if (!link) return;
+        var target = document.getElementById(link.dataset.target);
+        if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+
+    // ── Highlight active TOC section on scroll ───────────────────────
+    var tocLinks = toc.querySelectorAll('a');
+    function updateActiveToc() {
+        var scrollY = window.scrollY + 120;
+        var active = null;
+        headings.forEach(function (h) {
+            if (h.offsetTop <= scrollY) active = h.id;
+        });
+        tocLinks.forEach(function (l) {
+            l.classList.toggle('is-active', l.dataset.target === active);
+        });
+    }
+
+    // ── Reading progress: terminal bar (desktop) + thin bar (mobile) ─
+    var terminalBar = document.getElementById('pd-terminal-bar');
+    var progressNum = document.getElementById('pd-progress-num');
+    var mobileFill  = document.getElementById('pd-mobile-fill');
+    var BAR_WIDTH   = 20;
+
+    function updateProgress() {
+        var articleTop = article.offsetTop;
+        var articleHeight = article.offsetHeight;
+        var scrolled = window.scrollY - articleTop + (window.innerHeight * 0.3);
+        var pct = Math.min(100, Math.max(0, (scrolled / articleHeight) * 100));
+
+        if (terminalBar) {
+            var filled = Math.round((pct / 100) * BAR_WIDTH);
+            var bar = '[' + '\u2588'.repeat(filled) + '\u2591'.repeat(BAR_WIDTH - filled) + ']';
+            terminalBar.textContent = bar;
+        }
+        if (progressNum) progressNum.textContent = Math.round(pct);
+        if (mobileFill) mobileFill.style.width = pct + '%';
+
+        updateActiveToc();
+    }
+
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    window.addEventListener('resize', updateProgress);
+    updateProgress();
+
+    // ── Back to top ───────────────────────────────────────────────────
+    var backTop = document.getElementById('pd-back-top');
+    if (backTop) {
+        backTop.addEventListener('click', function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+    // ── Copy link ─────────────────────────────────────────────────────
+    var copyBtn = document.getElementById('pd-copy-link');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+            navigator.clipboard.writeText(window.location.href).then(function () {
+                var icon = copyBtn.querySelector('i');
+                icon.className = 'bx bx-check';
+                setTimeout(function () { icon.className = 'bx bx-link'; }, 1800);
+            });
+        });
+    }
+})();
+</script>
+
+{# ── Prism.js syntax highlighting for TinyMCE codesample output ──── #}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" crossorigin="anonymous">
+<style>
+    .pd-body pre[class*="language-"], .pd-body code[class*="language-"] {
+        font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+        font-size: 0.875rem;
+        line-height: 1.65;
+    }
+    .pd-body pre[class*="language-"] {
+        background: var(--ink) !important;
+        border: 1px solid var(--rule);
+        padding: 1.125rem 1.25rem;
+        overflow-x: auto;
+        position: relative;
+    }
+    .pd-body pre[class*="language-"][data-lang]::after {
+        content: attr(data-lang);
+        position: absolute;
+        top: 0.5rem; right: 0.875rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.35);
+        pointer-events: none;
+    }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" crossorigin="anonymous"></script>
+<script>
+(function () {
+    function preparePrism() {
+        document.querySelectorAll('.pd-body pre[class*="language-"]').forEach(function (pre) {
+            var match = pre.className.match(/language-([\w-]+)/);
+            if (!match) return;
+            var lang = match[1];
+            pre.setAttribute('data-lang', lang);
+            var code = pre.querySelector('code');
+            if (!code) {
+                code = document.createElement('code');
+                code.className = 'language-' + lang;
+                code.textContent = pre.textContent;
+                pre.textContent = '';
+                pre.appendChild(code);
+            } else if (!code.className.includes('language-')) {
+                code.classList.add('language-' + lang);
+            }
+        });
+        if (window.Prism) Prism.highlightAll();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', preparePrism);
+    } else {
+        preparePrism();
+    }
+})();
+</script>
+
 {% endblock %}

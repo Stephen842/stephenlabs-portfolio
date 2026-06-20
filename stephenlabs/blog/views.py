@@ -1,38 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.http import Http404
-from django.db.models import Q
+from django.http import Http404, JsonResponse
 from django.contrib import messages
+from django.urls import reverse
+
 
 from blog.models import Post, Category, Tag, Subscriber
-from blog.forms import PostForm
 from blog.utils import filter_posts, subscribe_email
-
-
-@login_required
-def post_create(request):
-    if request.method == 'POST':
-        form = PostForm(request.POST, request.FILES)
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            post.save()
-            form.save_m2m()
-            return redirect('post_detail', slug=post.slug)
-    else:
-        form = PostForm()
-
-    if request.method == 'POST' and 'footer_email' in request.POST:
-        email = request.POST.get('footer_email')
-        subscribe_email(request, email)
-        messages.success(request, "Thank you! You've successfully subscribed to the StephensLab newsletter.")
-
-
-    context = {
-        'form': form,
-        'title': 'Create New Article · StephensLab'
-    }
-    return render(request, 'pages/post_form.html', context)
 
 
 def post_list(request):
@@ -57,6 +30,46 @@ def post_list(request):
         'title': 'Insights & Articles · StephensLab'
     }
     return render(request, 'pages/post_list.html', context)
+
+
+def post_search_ajax(request):
+    '''
+    Lightweight JSON search endpoint for the live navbar search dropdown.
+    Returns up to 6 matching posts with the minimum fields the dropdown
+    needs to render — title, slug, category, reading time, thumbnail.
+    '''
+    query = request.GET.get('q', '').strip()
+ 
+    if len(query) < 2:
+        return JsonResponse({'results': [], 'count': 0, 'query': query})
+ 
+    base_queryset = Post.objects.filter(
+        status=Post.Status.PUBLISHED
+    ).select_related('category', 'author')
+ 
+    # Reuse your existing filter_posts() utility for consistent search logic
+    results = filter_posts(request, base_queryset)[:6]
+    total_count = filter_posts(request, base_queryset).count()
+ 
+    data = []
+    for post in results:
+        data.append({
+            'title': post.title,
+            'slug': post.slug,
+            'url': reverse('post_detail', kwargs={'slug': post.slug}),
+            'category': post.category.name,
+            'category_slug': post.category.slug,
+            'reading_time': post.reading_time,
+            'excerpt': post.excerpt[:90] + ('…' if len(post.excerpt) > 90 else ''),
+            'thumbnail': post.featured_image.url if post.featured_image else None,
+            'initial': post.title[0].upper() if post.title else '?',
+        })
+ 
+    return JsonResponse({
+        'results': data,
+        'count': total_count,
+        'query': query,
+    })
 
 
 def post_detail(request, slug):
@@ -85,48 +98,6 @@ def post_detail(request, slug):
     }
     return render(request, 'pages/post_detail.html', context)
 
-
-@login_required
-def post_edit(request, slug):
-    post = get_object_or_404(Post, slug=slug)
-
-    if request.method == 'POST' and 'footer_email' in request.POST:
-        email = request.POST.get('footer_email')
-        subscribe_email(request, email)
-        messages.success(request, "Thank you! You've successfully subscribed to the StephensLab newsletter.")
-
-
-    if post.author != request.user:
-        raise Http404('You are not allowed to edit this post')
-    
-    if request.method == 'POST':
-        form = PostForm(request.POST, request.FILES, instance=post)
-        if form.is_valid():
-            form.save()
-            return redirect('post_detail', slug=post.slug)
-        
-    else:
-        form = PostForm(instance=post)
-
-    context = {
-        'form': form,
-        'title': f'Edit: {post.title} · StephensLab'
-    }
-    return render(request, 'pages/post_form.html', context)
-
-
-@login_required
-def my_drafts(request):
-    posts = Post.objects.filter(
-        author=request.user,
-        status=Post.Status.DRAFT
-    ).order_by('-updated_at')
-
-    context = {
-        'posts': posts,
-        'title': 'My Drafts · StephensLab'
-    }
-    return render(request, 'pages/my_drafts.html', context)
 
 
 def unsubscribe(request, subscriber_id):

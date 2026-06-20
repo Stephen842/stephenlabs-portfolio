@@ -1,24 +1,641 @@
-{% extends 'pages/base.html' %}
-{% block content %}
-<h2>Insights & Articles</h2>
+{% extends "pages/base.html" %}
+{% load static %}
 
-{% for post in posts %}
-<article>
-    <h3><a href="{% url 'post_detail' slug=post.slug %}">{{ post.title }}</a></h3>
-    <p>
-        <strong>Category:</strong> {{ post.category.name }} |
-        <strong>Reading Time:</strong> {{ post.reading_time }} min
-    </p>
-    <p>{{ post.excerpt|truncatewords:50 }}</p>
-    <p>
-        <strong>Tags:</strong>
-        {% for tag in post.tags.all %}
-            <a href="#">{{ tag.name }}</a>{% if not forloop.last %}, {% endif %}
+{% block content %}
+
+<style>
+    .pl-wrap { width: 100%; }
+
+    /* ── Page header ──────────────────────────────────────────────── */
+    .pl-header {
+        margin-bottom: 3rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid var(--rule);
+    }
+
+    .pl-eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 1rem;
+    }
+
+    .pl-eyebrow::before {
+        content: '';
+        width: 18px;
+        height: 1.5px;
+        background: var(--brand);
+    }
+
+    .pl-eyebrow .pl-count {
+        color: var(--muted);
+        font-weight: 400;
+    }
+
+    .pl-title {
+        font-family: var(--font-display);
+        font-size: clamp(2rem, 4.5vw, 3rem);
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        margin-bottom: 0.875rem;
+    }
+
+    .pl-subhead {
+        font-family: var(--font-body);
+        font-size: 1.0625rem;
+        color: var(--muted);
+        max-width: 560px;
+        line-height: 1.6;
+    }
+
+    /* Active filter chips */
+    .pl-active-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .pl-filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--brand);
+        background: var(--brand-pale);
+        border: 1px solid rgba(37,99,235,0.2);
+        padding: 0.3rem 0.75rem;
+        border-radius: 100px;
+    }
+
+    .pl-filter-chip a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--brand);
+        opacity: 0.6;
+        transition: opacity 150ms;
+        margin-left: 0.125rem;
+    }
+
+    .pl-filter-chip a:hover { opacity: 1; }
+
+    /* ── Featured post (most recent) ──────────────────────────────── */
+    .pl-featured {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 2.5rem;
+        align-items: center;
+        margin-bottom: 4rem;
+        padding-bottom: 3.5rem;
+        border-bottom: 1px solid var(--rule);
+        text-decoration: none;
+        color: inherit;
+    }
+
+    @media (max-width: 860px) {
+        .pl-featured {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+    }
+
+    .pl-featured-media {
+        position: relative;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        aspect-ratio: 16 / 11;
+        background: linear-gradient(135deg, var(--brand-deep) 0%, var(--brand) 55%, #60A5FA 100%);
+    }
+
+    .pl-featured-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .pl-featured:hover .pl-featured-media img {
+        transform: scale(1.035);
+    }
+
+    .pl-featured-media-empty {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .pl-featured-media-empty span {
+        font-family: var(--font-mono);
+        font-size: 5rem;
+        font-weight: 700;
+        color: rgba(255,255,255,0.18);
+        letter-spacing: -0.04em;
+        user-select: none;
+    }
+
+    .pl-featured-badge {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--white);
+        background: rgba(10,22,40,0.55);
+        backdrop-filter: blur(6px);
+        padding: 0.3rem 0.7rem;
+        border-radius: 100px;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .pl-featured-badge::before {
+        content: '';
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #4ADE80;
+        flex-shrink: 0;
+    }
+
+    .pl-featured-meta {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.125rem;
+        flex-wrap: wrap;
+    }
+
+    .pl-featured-meta .pl-ns { color: var(--brand); font-weight: 500; }
+    .pl-featured-meta .pl-dot { color: var(--rule); }
+
+    .pl-featured-title {
+        font-family: var(--font-display);
+        font-size: clamp(1.625rem, 3vw, 2.25rem);
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.025em;
+        line-height: 1.18;
+        margin-bottom: 0.875rem;
+        transition: color 150ms;
+    }
+
+    .pl-featured:hover .pl-featured-title { color: var(--brand); }
+
+    .pl-featured-excerpt {
+        font-family: var(--font-body);
+        font-size: 1rem;
+        line-height: 1.7;
+        color: var(--ink-muted);
+        margin-bottom: 1.25rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .pl-featured-author {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+    }
+
+    .pl-author-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--brand-pale);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--brand);
+        flex-shrink: 0;
+    }
+
+    .pl-author-name {
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--ink-muted);
+    }
+
+    /* ── Section divider before list ──────────────────────────────── */
+    .pl-list-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 1.75rem;
+    }
+
+    .pl-list-label {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    /* ── Post list — dense, scannable rows ────────────────────────── */
+    .pl-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+        border-top: 1px solid var(--rule);
+    }
+
+    @media (max-width: 760px) {
+        .pl-list { grid-template-columns: 1fr; }
+    }
+
+    .pl-row {
+        display: flex;
+        gap: 1.125rem;
+        padding: 1.5rem 1.25rem 1.5rem 0;
+        border-bottom: 1px solid var(--rule);
+        text-decoration: none;
+        color: inherit;
+        transition: background 150ms;
+    }
+
+    /* Vertical divider for 2-col grid, odd items get right border */
+    .pl-list .pl-row:nth-child(odd) {
+        border-right: 1px solid var(--rule);
+        padding-right: 1.5rem;
+    }
+    .pl-list .pl-row:nth-child(even) {
+        padding-left: 1.5rem;
+    }
+
+    @media (max-width: 760px) {
+        .pl-list .pl-row:nth-child(odd) {
+            border-right: none;
+            padding-right: 0;
+        }
+        .pl-list .pl-row:nth-child(even) {
+            padding-left: 0;
+        }
+    }
+
+    .pl-row:hover {
+        background: var(--surface-alt);
+    }
+
+    .pl-row-thumb {
+        width: 96px;
+        height: 96px;
+        flex-shrink: 0;
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        background: linear-gradient(135deg, var(--brand-deep) 0%, var(--brand) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .pl-row-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .pl-row-thumb-letter {
+        font-family: var(--font-mono);
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: rgba(255,255,255,0.3);
+    }
+
+    .pl-row-body {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .pl-row-meta {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+    }
+
+    .pl-row-meta .pl-ns { color: var(--brand); font-weight: 500; }
+    .pl-row-meta .pl-dot { color: var(--rule); }
+
+    .pl-row-title {
+        font-family: var(--font-display);
+        font-size: 1.0625rem;
+        font-weight: 600;
+        color: var(--ink);
+        letter-spacing: -0.015em;
+        line-height: 1.32;
+        transition: color 150ms;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .pl-row:hover .pl-row-title { color: var(--brand); }
+
+    .pl-row-excerpt {
+        font-family: var(--font-body);
+        font-size: 0.8125rem;
+        color: var(--muted);
+        line-height: 1.55;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .pl-row-tags {
+        display: flex;
+        gap: 0.375rem;
+        margin-top: 0.125rem;
+        flex-wrap: wrap;
+    }
+
+    .pl-row-tag {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        color: var(--muted);
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        padding: 0.1rem 0.45rem;
+        border-radius: 3px;
+    }
+
+    /* ── Empty state ───────────────────────────────────────────────── */
+    .pl-empty {
+        text-align: center;
+        padding: 5rem 1.5rem;
+        border-top: 1px solid var(--rule);
+    }
+
+    .pl-empty-icon {
+        font-size: 2.5rem;
+        color: var(--muted-lt);
+        margin-bottom: 1rem;
+    }
+
+    .pl-empty-title {
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 0.5rem;
+    }
+
+    .pl-empty-sub {
+        font-family: var(--font-body);
+        font-size: 0.9375rem;
+        color: var(--muted);
+        margin-bottom: 1.5rem;
+    }
+
+    .pl-empty-link {
+        font-family: var(--font-mono);
+        font-size: 0.8125rem;
+        color: var(--brand);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    /* ── Pagination ────────────────────────────────────────────────── */
+    .pl-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 3rem;
+        padding-top: 2.5rem;
+        border-top: 1px solid var(--rule);
+    }
+
+    .pl-page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 0.75rem;
+        font-family: var(--font-mono);
+        font-size: 0.8125rem;
+        color: var(--ink-muted);
+        border: 1px solid var(--rule);
+        border-radius: var(--radius-sm);
+        transition: all 150ms;
+    }
+
+    .pl-page-link:hover {
+        border-color: var(--brand);
+        color: var(--brand);
+        background: var(--brand-pale);
+    }
+
+    .pl-page-link.current {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: var(--white);
+    }
+
+    .pl-page-link.disabled {
+        opacity: 0.35;
+        pointer-events: none;
+    }
+</style>
+
+<div class="pl-wrap">
+
+    <!-- Page header -->
+    <div class="pl-header">
+        <p class="pl-eyebrow">
+            Insights &amp; Articles
+            <span class="pl-count">&middot; {{ posts.paginator.count|default:posts|length }} published</span>
+        </p>
+        <h1 class="pl-title">
+            {% if query %}
+                Results for &ldquo;{{ query }}&rdquo;
+            {% elif selected_category %}
+                {% for c in categories %}{% if c.slug == selected_category %}{{ c.name }}{% endif %}{% endfor %}
+            {% else %}
+                Engineering Notes
+            {% endif %}
+        </h1>
+        <p class="pl-subhead">
+            Practical guides, deep dives, and field notes on blockchain, Web3, Python backend
+            engineering, and DevOps written from production experience, not theory.
+        </p>
+
+        {% if query or selected_category or selected_tag %}
+        <div class="pl-active-filters">
+            {% if query %}
+            <span class="pl-filter-chip">
+                search: &ldquo;{{ query }}&rdquo;
+                <a href="?{% if selected_category %}category={{ selected_category }}&{% endif %}{% if selected_tag %}tag={{ selected_tag }}{% endif %}" aria-label="Remove search filter">&times;</a>
+            </span>
+            {% endif %}
+            {% if selected_category %}
+            <span class="pl-filter-chip">
+                category: {{ selected_category }}
+                <a href="?{% if query %}q={{ query }}&{% endif %}{% if selected_tag %}tag={{ selected_tag }}{% endif %}" aria-label="Remove category filter">&times;</a>
+            </span>
+            {% endif %}
+            {% if selected_tag %}
+            <span class="pl-filter-chip">
+                tag: {{ selected_tag }}
+                <a href="?{% if query %}q={{ query }}&{% endif %}{% if selected_category %}category={{ selected_category }}{% endif %}" aria-label="Remove tag filter">&times;</a>
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if posts %}
+
+        {% if not query and not selected_category and not selected_tag %}
+            {% with featured=posts.0 %}
+            <!-- ══ FEATURED — most recent post ══════════════════════════ -->
+            <a href="{% url 'post_detail' featured.slug %}" class="pl-featured">
+                <div class="pl-featured-media">
+                    {% if featured.featured_image %}
+                        <img src="{{ featured.featured_image.url }}" alt="{{ featured.title }}">
+                    {% else %}
+                        <div class="pl-featured-media-empty">
+                            <span>{{ featured.title|first|upper }}</span>
+                        </div>
+                    {% endif %}
+                    <span class="pl-featured-badge">Latest</span>
+                </div>
+                <div>
+                    <div class="pl-featured-meta">
+                        <span class="pl-ns">{{ featured.category.slug }}::</span>
+                        <span class="pl-dot">&middot;</span>
+                        <span>--read {{ featured.reading_time }}m</span>
+                        <span class="pl-dot">&middot;</span>
+                        <span>{{ featured.published_at|date:"Y-m-d"|default:featured.created_at|date:"Y-m-d" }}</span>
+                    </div>
+                    <h2 class="pl-featured-title">{{ featured.title }}</h2>
+                    <p class="pl-featured-excerpt">{{ featured.excerpt }}</p>
+                    <div class="pl-featured-author">
+                        <div class="pl-author-avatar">
+                            {% if featured.author.first_name %}{{ featured.author.first_name.0 }}{% else %}{{ featured.author.username.0|upper }}{% endif %}
+                        </div>
+                        <span class="pl-author-name">{{ featured.author.get_full_name|default:featured.author.username }}</span>
+                    </div>
+                </div>
+            </a>
+            {% endwith %}
+
+            <div class="pl-list-header">
+                <span class="pl-list-label">More articles</span>
+            </div>
+        {% endif %}
+
+        <div class="pl-list">
+        {% for post in posts %}
+            {% if not forloop.first or query or selected_category or selected_tag %}
+                <!-- ── List row ──────────────────────────────────────── -->
+                <a href="{% url 'post_detail' post.slug %}" class="pl-row">
+                    <div class="pl-row-thumb">
+                        {% if post.featured_image %}
+                            <img src="{{ post.featured_image.url }}" alt="{{ post.title }}">
+                        {% else %}
+                            <span class="pl-row-thumb-letter">{{ post.title|first|upper }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="pl-row-body">
+                        <div class="pl-row-meta">
+                            <span class="pl-ns">{{ post.category.slug }}::</span>
+                            <span class="pl-dot">&middot;</span>
+                            <span>{{ post.reading_time }}m read</span>
+                            <span class="pl-dot">&middot;</span>
+                            <span>{{ post.published_at|date:"M d, Y"|default:post.created_at|date:"M d, Y" }}</span>
+                        </div>
+                        <h3 class="pl-row-title">{{ post.title }}</h3>
+                        <p class="pl-row-excerpt">{{ post.excerpt }}</p>
+                        {% if post.tags.all %}
+                        <div class="pl-row-tags">
+                            {% for tag in post.tags.all|slice:":3" %}
+                            <span class="pl-row-tag">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </a>
+            {% endif %}
         {% endfor %}
-    </p>
-</article>
-<hr>
-{% empty %}
-<p>No articles yet.</p>
-{% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if posts.has_other_pages %}
+        <nav class="pl-pagination" aria-label="Pagination">
+            {% if posts.has_previous %}
+            <a href="?page={{ posts.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}" class="pl-page-link">&larr;</a>
+            {% else %}
+            <span class="pl-page-link disabled">&larr;</span>
+            {% endif %}
+
+            {% for num in posts.paginator.page_range %}
+                {% if posts.number == num %}
+                <span class="pl-page-link current">{{ num }}</span>
+                {% elif num > posts.number|add:'-3' and num < posts.number|add:'3' %}
+                <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}" class="pl-page-link">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if posts.has_next %}
+            <a href="?page={{ posts.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_tag %}&tag={{ selected_tag }}{% endif %}" class="pl-page-link">&rarr;</a>
+            {% else %}
+            <span class="pl-page-link disabled">&rarr;</span>
+            {% endif %}
+        </nav>
+        {% endif %}
+
+    {% else %}
+        <!-- ── Empty state ───────────────────────────────────────────── -->
+        <div class="pl-empty">
+            <div class="pl-empty-icon"><i class='bx bx-search-alt'></i></div>
+            <p class="pl-empty-title">No articles found</p>
+            <p class="pl-empty-sub">
+                {% if query %}
+                    Nothing matched &ldquo;{{ query }}&rdquo;. Try a different search term.
+                {% else %}
+                    No articles in this category yet &mdash; check back soon.
+                {% endif %}
+            </p>
+            <a href="{% url 'post_list' %}" class="pl-empty-link">View all articles</a>
+        </div>
+    {% endif %}
+
+</div>
+
 {% endblock %}
