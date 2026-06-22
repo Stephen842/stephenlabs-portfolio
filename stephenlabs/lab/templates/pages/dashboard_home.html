@@ -45,6 +45,8 @@
     .stat-icon.red     { background: rgba(248,81,73,0.12);  color: #F85149; }
     .stat-icon.purple  { background: rgba(139,92,246,0.12); color: #8B5CF6; }
     .stat-icon.teal    { background: rgba(20,184,166,0.12); color: #14B8A6; }
+    .stat-icon.pink    { background: rgba(236,72,153,0.12); color: #EC4899; }
+    .stat-icon.orange  { background: rgba(251,146,60,0.12); color: #FB923C; }
 
     .stat-trend {
         font-family: var(--font-mono);
@@ -54,6 +56,7 @@
     }
     .stat-trend.up   { background: rgba(63,185,80,0.12);  color: #3FB950; }
     .stat-trend.info { background: var(--brand-pale); color: var(--brand); }
+    .stat-trend.warn { background: rgba(210,153,34,0.12); color: #D29922; }
 
     .stat-value {
         font-family: var(--font-display);
@@ -80,6 +83,34 @@
         align-items: start;
     }
     @media (max-width: 900px) { .home-grid { grid-template-columns: 1fr; } }
+
+    /* ── Quick Actions ───────────────────────────────── */
+    .quick-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.625rem;
+        margin-bottom: 1.5rem;
+    }
+    .quick-action-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 0.875rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text-2);
+        font-size: 0.8125rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all var(--transition);
+    }
+    .quick-action-btn:hover {
+        border-color: var(--brand);
+        background: var(--brand-pale);
+        color: var(--text);
+    }
+    .quick-action-btn i { font-size: 1rem; }
 
     /* ── Recent posts table ──────────────────────────── */
     .data-table {
@@ -128,6 +159,33 @@
     .msg-quick-name { font-size: 0.875rem; font-weight: 500; color: var(--text); }
     .msg-quick-sub  { font-size: 0.75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
     .msg-quick-time { font-family: var(--font-mono); font-size: 0.5625rem; color: var(--muted-lt); margin-top: 0.2rem; }
+
+    /* ── Campaign stats mini ─────────────────────────── */
+    .campaign-mini-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+    }
+    .campaign-mini-stat {
+        text-align: center;
+        padding: 0.5rem;
+        background: var(--surface-2);
+        border-radius: var(--radius);
+    }
+    .campaign-mini-stat .num {
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+    .campaign-mini-stat .label {
+        font-family: var(--font-mono);
+        font-size: 0.5rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
 </style>
 {% endblock %}
 
@@ -142,6 +200,9 @@
     <div class="page-actions">
         <a href="{% url 'lab:post_create' %}" class="btn btn-primary btn-sm">
             <i class='bx bx-plus'></i> New post
+        </a>
+        <a href="{% url 'lab:campaign_create' %}" class="btn btn-secondary btn-sm">
+            <i class='bx bx-mail-send'></i> New campaign
         </a>
     </div>
 </div>
@@ -162,13 +223,25 @@
 
     <a href="{% url 'lab:dashboard_subscribers' %}" class="stat-card">
         <div class="stat-card-top">
-            <div class="stat-icon green"><i class='bx bx-mail-send'></i></div>
+            <div class="stat-icon green"><i class='bx bx-user'></i></div>
             <span class="stat-trend up">Active</span>
         </div>
         <div class="stat-value">{{ active_subscribers }}</div>
         <div>
             <div class="stat-label">Subscribers</div>
             <div class="stat-sub">{{ total_subscribers }} total</div>
+        </div>
+    </a>
+
+    <a href="{% url 'lab:campaign_list' %}" class="stat-card">
+        <div class="stat-card-top">
+            <div class="stat-icon pink"><i class='bx bx-mail-send'></i></div>
+            <span class="stat-trend info">Sent</span>
+        </div>
+        <div class="stat-value">{{ total_campaigns }}</div>
+        <div>
+            <div class="stat-label">Campaigns</div>
+            <div class="stat-sub">{{ sent_campaigns }} sent · {{ draft_campaigns }} draft</div>
         </div>
     </a>
 
@@ -185,17 +258,21 @@
             <div class="stat-sub">{{ total_messages }} total received</div>
         </div>
     </a>
+</div>
 
-    <!-- FIXED: Changed from dashboard_taxonomy to category_list -->
-    <a href="{% url 'lab:category_list' %}" class="stat-card">
-        <div class="stat-card-top">
-            <div class="stat-icon purple"><i class='bx bx-folder'></i></div>
-        </div>
-        <div class="stat-value">{{ total_categories }}</div>
-        <div>
-            <div class="stat-label">Categories</div>
-            <div class="stat-sub">{{ total_tags }} tags</div>
-        </div>
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <a href="{% url 'lab:post_create' %}" class="quick-action-btn">
+        <i class='bx bx-edit-alt'></i> Write post
+    </a>
+    <a href="{% url 'lab:campaign_create' %}" class="quick-action-btn">
+        <i class='bx bx-mail-send'></i> New campaign
+    </a>
+    <a href="{% url 'lab:dashboard_subscribers' %}" class="quick-action-btn">
+        <i class='bx bx-user-plus'></i> Manage subscribers
+    </a>
+    <a href="{% url 'lab:template_list' %}" class="quick-action-btn">
+        <i class='bx bx-paste'></i> Email templates
     </a>
 </div>
 
@@ -223,7 +300,7 @@
                 <tr>
                     <td>
                         <div class="post-title-cell">
-                            <a href="{% url 'admin:blog_post_change' post.id %}" class="post-title-main">{{ post.title|truncatechars:50 }}</a>
+                            <a href="{% url 'lab:post_edit' post.id %}" class="post-title-main">{{ post.title|truncatechars:50 }}</a>
                             <span class="post-title-meta">{{ post.reading_time }} min read</span>
                         </div>
                     </td>
@@ -262,6 +339,27 @@
         {% else %}
         <div style="padding:2.5rem;text-align:center;">
             <p style="color:var(--muted);font-size:0.875rem;">No messages yet.</p>
+        </div>
+        {% endif %}
+        
+        <!-- Campaign Mini Stats -->
+        {% if total_campaigns > 0 %}
+        <div style="padding:0.875rem 1.25rem;border-top:1px solid var(--border);">
+            <p style="font-family:var(--font-mono);font-size:0.5625rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.75rem;">Campaign activity</p>
+            <div class="campaign-mini-stats">
+                <div class="campaign-mini-stat">
+                    <div class="num">{{ total_campaigns }}</div>
+                    <div class="label">Total</div>
+                </div>
+                <div class="campaign-mini-stat">
+                    <div class="num">{{ sent_campaigns }}</div>
+                    <div class="label">Sent</div>
+                </div>
+                <div class="campaign-mini-stat">
+                    <div class="num">{{ draft_campaigns }}</div>
+                    <div class="label">Draft</div>
+                </div>
+            </div>
         </div>
         {% endif %}
     </div>

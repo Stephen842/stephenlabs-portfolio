@@ -1,0 +1,84 @@
+{% extends "pages/admin_base.html" %}
+{% block page_title %}Delete Template{% endblock %}
+{% block nav_templates %}active{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumb">
+    <a href="{% url 'lab:template_list' %}">Templates</a>
+    <span>/</span>
+    <a href="{% url 'lab:template_edit' template.id %}">{{ template.name }}</a>
+    <span>/</span>
+    <span class="current">Delete</span>
+</nav>
+
+<div style="max-width:520px;margin:0 auto;padding-top:1.5rem;">
+    <div class="card" style="border-color:rgba(248,81,73,0.25);">
+        <div class="card-header" style="background:rgba(248,81,73,0.06);border-bottom-color:rgba(248,81,73,0.15);">
+            <div style="display:flex;align-items:center;gap:0.625rem;">
+                <div style="width:28px;height:28px;background:rgba(248,81,73,0.12);border-radius:5px;display:flex;align-items:center;justify-content:center;color:var(--s-spam);">
+                    <i class='bx bx-trash'></i>
+                </div>
+                <span class="card-header-title">Delete Template</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p style="font-family:var(--font-mono);font-size:0.5625rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--s-spam);margin-bottom:1rem;">Irreversible action</p>
+
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.125rem;margin-bottom:1.25rem;">
+                <div style="display:flex;gap:0.875rem;align-items:baseline;padding:0.3rem 0;font-size:0.8125rem;">
+                    <span style="font-family:var(--font-mono);font-size:0.5625rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);width:80px;flex-shrink:0;">Name</span>
+                    <span style="color:var(--text-2);font-weight:500;">{{ template.name }}</span>
+                </div>
+                <div style="display:flex;gap:0.875rem;align-items:baseline;padding:0.3rem 0;font-size:0.8125rem;">
+                    <span style="font-family:var(--font-mono);font-size:0.5625rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);width:80px;flex-shrink:0;">Subject</span>
+                    <span style="color:var(--text-2);">{{ template.subject }}</span>
+                </div>
+                {% if template.category %}
+                <div style="display:flex;gap:0.875rem;align-items:baseline;padding:0.3rem 0;font-size:0.8125rem;">
+                    <span style="font-family:var(--font-mono);font-size:0.5625rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);width:80px;flex-shrink:0;">Category</span>
+                    <span style="color:var(--text-2);">{{ template.category }}</span>
+                </div>
+                {% endif %}
+                <div style="display:flex;gap:0.875rem;align-items:baseline;padding:0.3rem 0;font-size:0.8125rem;">
+                    <span style="font-family:var(--font-mono);font-size:0.5625rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);width:80px;flex-shrink:0;">Created</span>
+                    <span style="font-family:var(--font-mono);font-size:0.6875rem;color:var(--muted);">{{ template.created_at|date:"M d, Y" }}</span>
+                </div>
+                {% if template.is_active %}
+                <div style="display:flex;gap:0.875rem;align-items:baseline;padding:0.3rem 0;font-size:0.8125rem;">
+                    <span style="font-family:var(--font-mono);font-size:0.5625rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);width:80px;flex-shrink:0;">Status</span>
+                    <span><span class="status-pill active">Active</span></span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div style="background:rgba(248,81,73,0.05);border-left:3px solid rgba(248,81,73,0.3);border-radius:0 var(--radius) var(--radius) 0;padding:0.875rem 1rem;margin-bottom:1.5rem;font-size:0.8125rem;color:var(--muted);line-height:1.6;">
+                This will permanently delete this email template.
+                <p style="margin-top:0.5rem;color:var(--s-spam);font-weight:500;">This action cannot be undone.</p>
+            </div>
+
+            <div style="display:flex;gap:0.625rem;justify-content:flex-end;">
+                <a href="{% url 'lab:template_list' %}" class="btn btn-ghost">
+                    <i class='bx bx-x'></i> Cancel
+                </a>
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" id="del-btn">
+                        <i class='bx bx-trash'></i> Delete permanently
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('del-btn').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<i class="bx bx-loader-alt" style="animation:spin 0.7s linear infinite;"></i> Deleting…';
+});
+</script>
+{% endblock %}

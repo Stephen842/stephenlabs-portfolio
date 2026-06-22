@@ -79,6 +79,12 @@
             --s-pub-bg:    rgba(63,185,80,0.12);
             --s-draft:     #D29922;
             --s-draft-bg:  rgba(210,153,34,0.12);
+            --s-scheduled: #D29922;
+            --s-scheduled-bg:rgba(210,153,34,0.12);
+            --s-sent:     #3FB950;
+            --s-sent-bg:  rgba(63,185,80,0.12);
+            --s-failed:   #F85149;
+            --s-failed-bg:rgba(248,81,73,0.12);
         }
 
         /* Shell */
@@ -265,6 +271,9 @@
         .status-pill.spam      { background: var(--s-spam-bg); color: var(--s-spam); }
         .status-pill.active    { background: var(--s-pub-bg); color: var(--s-published); }
         .status-pill.inactive  { background: var(--s-draft-bg); color: var(--s-draft); }
+        .status-pill.scheduled { background: var(--s-scheduled-bg); color: var(--s-scheduled); }
+        .status-pill.sent      { background: var(--s-sent-bg); color: var(--s-sent); }
+        .status-pill.failed    { background: var(--s-failed-bg); color: var(--s-failed); }
 
         /* Category chip */
         .cat-chip {
@@ -365,7 +374,9 @@
     <header class="admin-topbar">
         <div class="topbar-left">
             <a href="{% url 'lab:dashboard_home' %}" class="topbar-logo">
-                <div><img src="{% static 'favicon_io/favicon-32x32.png' %}" alt="Logo"></div>
+                <div class="topbar-logo-mark">
+                    <img src="{% static 'favicon_io/favicon-32x32.png' %}" alt="StephensLab" width="20" height="20">
+                </div>
                 <span class="topbar-logo-name">StephensLab</span>
             </a>
             <div class="topbar-sep"></div>
@@ -389,7 +400,6 @@
 
     <!-- Sidebar -->
     <aside class="admin-sidebar" role="navigation" aria-label="Dashboard navigation">
-
         <p class="sidebar-section-label">Overview</p>
         <a href="{% url 'lab:dashboard_home' %}" class="sidebar-link {% block nav_home %}{% endblock %}">
             <i class='bx bx-home-alt'></i> Overview
@@ -400,7 +410,6 @@
         <p class="sidebar-section-label">Blog</p>
         <a href="{% url 'lab:dashboard_post_list' %}" class="sidebar-link {% block nav_posts %}{% endblock %}">
             <i class='bx bx-edit-alt'></i> Posts
-            {% if draft_count %}<span class="s-badge warn">{{ draft_count }}</span>{% endif %}
         </a>
         <a href="{% url 'lab:post_create' %}" class="sidebar-link">
             <i class='bx bx-plus-circle'></i> New Post
@@ -410,6 +419,30 @@
         </a>
         <a href="{% url 'lab:tag_list' %}" class="sidebar-link {% block nav_tags %}{% endblock %}">
             <i class='bx bx-tag'></i> Tags
+        </a>
+
+        <div class="sidebar-divider"></div>
+
+        <p class="sidebar-section-label">Email</p>
+        <a href="{% url 'lab:campaign_list' %}" class="sidebar-link {% block nav_campaigns %}{% endblock %}">
+            <i class='bx bx-mail-send'></i> Campaigns
+            {% if draft_count %}<span class="s-badge warn">{{ draft_count }}</span>{% endif %}
+        </a>
+        <a href="{% url 'lab:campaign_create' %}" class="sidebar-link">
+            <i class='bx bx-plus-circle'></i> New Campaign
+        </a>
+        <a href="{% url 'lab:template_list' %}" class="sidebar-link {% block nav_templates %}{% endblock %}">
+            <i class='bx bx-paste'></i> Templates
+        </a>
+        <a href="{% url 'lab:segment_list' %}" class="sidebar-link {% block nav_segments %}{% endblock %}">
+            <i class='bx bx-filter-alt'></i> Segments
+        </a>
+
+        <div class="sidebar-divider"></div>
+
+        <p class="sidebar-section-label">Analytics</p>
+        <a href="{% url 'lab:tracking_stats' %}" class="sidebar-link {% block nav_tracking %}{% endblock %}">
+            <i class='bx bx-stats'></i> Campaign Analytics
         </a>
 
         <div class="sidebar-divider"></div>
@@ -437,7 +470,6 @@
                 <i class='bx bx-log-out'></i> Sign out
             </a>
         </div>
-
     </aside>
 
     <!-- Main -->

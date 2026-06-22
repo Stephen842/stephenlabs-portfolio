@@ -1,0 +1,215 @@
+{% extends "pages/admin_base.html" %}
+{% load static %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_templates %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        gap: 1.5rem;
+        align-items: start;
+    }
+    @media (max-width: 900px) {
+        .form-grid { grid-template-columns: 1fr; }
+    }
+
+    .sidebar-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    .sidebar-card-header {
+        padding: 0.75rem 1rem;
+        background: var(--surface-2);
+        border-bottom: 1px solid var(--border);
+        font-weight: 600;
+        font-size: 0.8125rem;
+    }
+    .sidebar-card-body {
+        padding: 1rem;
+    }
+
+    .field-hint {
+        font-size: 0.6875rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+    }
+
+    .preview-box {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.75rem 1rem;
+        font-size: 0.8125rem;
+        color: var(--muted);
+        max-height: 200px;
+        overflow-y: auto;
+        font-family: var(--font-mono);
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    .preview-box:empty::before {
+        content: 'No content yet…';
+        color: var(--muted-lt);
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumb">
+    <a href="{% url 'lab:template_list' %}">Templates</a>
+    <span>/</span>
+    <span class="current">{{ title }}</span>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="page-eyebrow">Email</p>
+        <h1 class="page-title">{{ title }}</h1>
+        <p class="page-sub">{% if is_edit %}Edit existing template{% else %}Create a reusable email template{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'lab:template_list' %}" class="btn btn-ghost btn-sm">
+            <i class='bx bx-arrow-back'></i> Back to templates
+        </a>
+    </div>
+</div>
+
+<form method="post" id="template-form">
+    {% csrf_token %}
+
+    <div class="form-grid">
+
+        <!-- Main content -->
+        <div>
+            <!-- Name -->
+            <div class="field-group">
+                <label class="field-label" for="{{ form.name.id_for_label }}">Template Name <span style="color:var(--s-spam);">*</span></label>
+                {{ form.name }}
+                <div class="field-hint">Give your template a descriptive name for easy identification.</div>
+                {% if form.name.errors %}
+                <p class="error-msg" style="color:var(--s-spam);font-size:0.75rem;margin-top:0.25rem;">{{ form.name.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Description -->
+            <div class="field-group">
+                <label class="field-label" for="{{ form.description.id_for_label }}">Description</label>
+                {{ form.description }}
+                <div class="field-hint">Briefly describe when to use this template.</div>
+            </div>
+
+            <!-- Subject -->
+            <div class="field-group">
+                <label class="field-label" for="{{ form.subject.id_for_label }}">Subject <span style="color:var(--s-spam);">*</span></label>
+                {{ form.subject }}
+                <div class="field-hint">The subject line that will be used for campaigns using this template.</div>
+                {% if form.subject.errors %}
+                <p class="error-msg">{{ form.subject.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Body -->
+            <div class="field-group">
+                <label class="field-label" for="{{ form.body.id_for_label }}">Content <span style="color:var(--s-spam);">*</span></label>
+                {{ form.body }}
+                {% if form.body.errors %}
+                <p class="error-msg">{{ form.body.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div>
+            <!-- Category & Status -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Template Settings</div>
+                <div class="sidebar-card-body">
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.category.id_for_label }}">Category</label>
+                        {{ form.category }}
+                        <div class="field-hint">Organize templates by category (e.g., Welcome, Newsletter, Promotional).</div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.is_active.id_for_label }}">
+                            {{ form.is_active }} Active
+                        </label>
+                        <div class="field-hint">Inactive templates won't appear in the template selection list.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Live Preview</div>
+                <div class="sidebar-card-body">
+                    <div class="preview-box" id="template-preview">
+                        {{ form.body.value|default:""|striptags|truncatewords:50 }}
+                    </div>
+                    <div class="field-hint" style="margin-top:0.5rem;">Preview of plain text content.</div>
+                </div>
+            </div>
+
+            <!-- Usage Info -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Usage</div>
+                <div class="sidebar-card-body">
+                    <div style="display:flex;justify-content:space-between;padding:0.25rem 0;border-bottom:1px solid var(--border);">
+                        <span style="font-size:0.8125rem;color:var(--muted);">Created</span>
+                        <span style="font-family:var(--font-mono);font-size:0.6875rem;color:var(--text-2);">
+                            {% if template %}{{ template.created_at|date:"M d, Y" }}{% else %}—{% endif %}
+                        </span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:0.25rem 0;">
+                        <span style="font-size:0.8125rem;color:var(--muted);">Created by</span>
+                        <span style="font-family:var(--font-mono);font-size:0.6875rem;color:var(--text-2);">
+                            {% if template and template.created_by %}{{ template.created_by.username }}{% else %}—{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Actions</div>
+                <div class="sidebar-card-body">
+                    <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+                            <i class='bx bx-save'></i> Save {% if is_edit %}Changes{% else %}Template{% endif %}
+                        </button>
+                        <a href="{% url 'lab:template_list' %}" class="btn btn-ghost" style="width:100%;justify-content:center;">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Live preview update
+var bodyField = document.getElementById('{{ form.body.id_for_label }}');
+var previewBox = document.getElementById('template-preview');
+
+if (bodyField && previewBox) {
+    function updatePreview() {
+        var content = bodyField.value || '';
+        var text = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        previewBox.textContent = text.substring(0, 300) + (text.length > 300 ? '…' : '');
+    }
+    bodyField.addEventListener('input', updatePreview);
+    updatePreview();
+}
+</script>
+{% endblock %}

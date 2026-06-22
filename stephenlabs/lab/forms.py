@@ -1,8 +1,12 @@
 from django import forms
-from blog.models import Post, Category, Tag
+from django import forms
+from tinymce.widgets import TinyMCE
 from django.utils.text import slugify
 import re
 from tinymce.widgets import TinyMCE
+
+from lab.models import Campaign, CampaignTemplate, EmailSegment
+from blog.models import Post, Category, Tag
 
 
 class CustomClearableFileInput(forms.ClearableFileInput):
@@ -153,3 +157,123 @@ class PostForm(forms.ModelForm):
                 selected_tags.append(tag)
         instance.tags.set(selected_tags)
         return instance
+
+
+class CampaignForm(forms.ModelForm):
+    """Form for creating and editing campaigns"""
+    
+    class Meta:
+        model = Campaign
+        fields = [
+            'subject', 'body', 'from_email', 'from_name', 'reply_to',
+            'target_segments', 'target_tags', 'scheduled_at', 'priority',
+            'tags', 'is_test', 'test_emails'
+        ]
+        widgets = {
+            'subject': forms.TextInput(attrs={
+                'class': 'field-input',
+                'placeholder': 'Enter campaign subject line...'
+            }),
+            'body': TinyMCE(attrs={
+                'class': 'field-textarea editor',
+                'style': 'width:100%; min-height:400px;'
+            }),
+            'from_email': forms.EmailInput(attrs={
+                'class': 'field-input',
+                'placeholder': 'Stephenslab001@gmail.com'
+            }),
+            'from_name': forms.TextInput(attrs={
+                'class': 'field-input',
+                'placeholder': 'The StephensLab Team'
+            }),
+            'reply_to': forms.EmailInput(attrs={
+                'class': 'field-input',
+                'placeholder': 'Stephenslab001@gmail.com'
+            }),
+            'target_segments': forms.SelectMultiple(attrs={
+                'class': 'field-select'
+            }),
+            'target_tags': forms.TextInput(attrs={
+                'class': 'field-input',
+                'placeholder': 'tag1, tag2, tag3'
+            }),
+            'scheduled_at': forms.DateTimeInput(attrs={
+                'class': 'field-input',
+                'type': 'datetime-local'
+            }),
+            'priority': forms.Select(attrs={
+                'class': 'field-select'
+            }),
+            'tags': forms.TextInput(attrs={
+                'class': 'field-input',
+                'placeholder': 'campaign-tag1, campaign-tag2'
+            }),
+            'test_emails': forms.TextInput(attrs={
+                'class': 'field-input',
+                'placeholder': 'test1@example.com, test2@example.com'
+            }),
+        }
+        widgets['is_test'] = forms.CheckboxInput(attrs={
+            'class': 'field-checkbox'
+        })
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['target_segments'].queryset = EmailSegment.objects.all()
+        self.fields['target_segments'].required = False
+        self.fields['target_segments'].help_text = 'Select subscriber segments to target'
+
+
+class CampaignTemplateForm(forms.ModelForm):
+    """Form for creating and editing campaign templates"""
+    
+    class Meta:
+        model = CampaignTemplate
+        fields = ['name', 'subject', 'body', 'description', 'category', 'is_active']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'field-input',
+                'placeholder': 'Welcome Series - Email 1'
+            }),
+            'subject': forms.TextInput(attrs={
+                'class': 'field-input',
+                'placeholder': 'Welcome to StephensLab!'
+            }),
+            'body': TinyMCE(attrs={
+                'class': 'field-textarea editor',
+                'style': 'width:100%; min-height:400px;'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'field-textarea',
+                'rows': 3,
+                'placeholder': 'Describe when to use this template...'
+            }),
+            'category': forms.TextInput(attrs={
+                'class': 'field-input',
+                'placeholder': 'Welcome, Newsletter, Promotional, etc.'
+            }),
+        }
+
+
+class SendTestEmailForm(forms.Form):
+    """Form for sending test emails"""
+    
+    test_email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'class': 'field-input',
+            'placeholder': 'test@example.com'
+        })
+    )
+    subject = forms.CharField(
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': 'field-input',
+            'placeholder': 'Test: Subject line'
+        })
+    )
+    body = forms.CharField(
+        widget=TinyMCE(attrs={
+            'class': 'field-textarea editor',
+            'style': 'width:100%; min-height:300px;'
+        })
+    )

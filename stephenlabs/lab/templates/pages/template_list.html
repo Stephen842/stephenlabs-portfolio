@@ -1,0 +1,324 @@
+{% extends "pages/admin_base.html" %}
+{% block page_title %}Email Templates{% endblock %}
+{% block nav_templates %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .filter-bar {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.75rem 1rem;
+        display: flex;
+        gap: 0.625rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+    .search-wrap {
+        position: relative;
+        flex-grow: 1;
+        max-width: 300px;
+    }
+    .search-wrap i {
+        position: absolute;
+        left: 0.625rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        pointer-events: none;
+    }
+    .search-wrap .field-input {
+        padding-left: 2rem;
+        font-size: 0.8125rem;
+    }
+    .filter-bar .field-select {
+        width: auto;
+        min-width: 140px;
+        font-size: 0.8125rem;
+        padding: 0.4rem 2rem 0.4rem 0.75rem;
+    }
+    .filter-right {
+        margin-left: auto;
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        color: var(--muted);
+    }
+
+    .templates-table-wrap {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+    .templates-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .templates-table thead tr {
+        background: var(--surface-2);
+        border-bottom: 1px solid var(--border);
+    }
+    .templates-table thead th {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 0.625rem 1rem;
+        text-align: left;
+        white-space: nowrap;
+    }
+    .templates-table tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background var(--transition);
+    }
+    .templates-table tbody tr:last-child {
+        border-bottom: none;
+    }
+    .templates-table tbody tr:hover {
+        background: var(--surface-2);
+    }
+    .templates-table tbody td {
+        padding: 0.75rem 1rem;
+        font-size: 0.8125rem;
+        color: var(--text-2);
+        vertical-align: middle;
+    }
+
+    .template-name-col {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+    .template-name-main {
+        font-weight: 500;
+        color: var(--text);
+        line-height: 1.4;
+    }
+    .template-name-desc {
+        font-size: 0.75rem;
+        color: var(--muted);
+        line-height: 1.4;
+    }
+
+    .row-actions {
+        display: flex;
+        gap: 0.375rem;
+        opacity: 0;
+        transition: opacity var(--transition);
+    }
+    .templates-table tbody tr:hover .row-actions {
+        opacity: 1;
+    }
+
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.875rem 1rem;
+        border-top: 1px solid var(--border);
+        flex-wrap: wrap;
+    }
+    .pagination-info {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        color: var(--muted);
+    }
+    .pagination-links {
+        display: flex;
+        gap: 0.25rem;
+    }
+    .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 30px;
+        height: 30px;
+        padding: 0 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        transition: all var(--transition);
+    }
+    .page-link:hover {
+        color: var(--text);
+        border-color: var(--border-2);
+        background: var(--surface-2);
+    }
+    .page-link.current {
+        background: var(--brand);
+        color: #fff;
+        border-color: var(--brand);
+    }
+    .page-link.disabled {
+        opacity: 0.35;
+        pointer-events: none;
+    }
+
+    .empty-state {
+        padding: 4rem 1.5rem;
+        text-align: center;
+    }
+    .empty-state i {
+        font-size: 2.5rem;
+        color: var(--muted-lt);
+        display: block;
+        margin-bottom: 0.875rem;
+    }
+    .empty-state-title {
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-2);
+        margin-bottom: 0.375rem;
+    }
+    .empty-state-sub {
+        font-size: 0.875rem;
+        color: var(--muted);
+    }
+
+    .category-badge {
+        display: inline-block;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        padding: 0.125rem 0.5rem;
+        border-radius: 12px;
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        color: var(--muted);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="page-eyebrow">Email</p>
+        <h1 class="page-title">Templates</h1>
+        <p class="page-sub">Manage reusable email templates for your campaigns</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'lab:template_create' %}" class="btn btn-primary btn-sm">
+            <i class='bx bx-plus'></i> New template
+        </a>
+    </div>
+</div>
+
+<!-- Filter bar -->
+<form method="get" class="filter-bar">
+    <div class="search-wrap">
+        <i class='bx bx-search'></i>
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search templates…" class="field-input" autocomplete="off">
+    </div>
+    <select name="category" class="field-select">
+        <option value="">All categories</option>
+        {% for cat in categories %}
+        <option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-secondary btn-sm"><i class='bx bx-filter-alt'></i> Filter</button>
+    {% if search_query or category_filter %}
+    <a href="{% url 'lab:template_list' %}" class="btn btn-ghost btn-sm">Clear</a>
+    {% endif %}
+    <span class="filter-right">{{ templates|length }} template{{ templates|pluralize }}</span>
+</form>
+
+<!-- Templates Table -->
+<div class="templates-table-wrap">
+    {% if templates %}
+    <table class="templates-table">
+        <thead>
+            <tr>
+                <th>Template Name</th>
+                <th>Category</th>
+                <th>Subject</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for template in templates %}
+            <tr>
+                <td>
+                    <div class="template-name-col">
+                        <span class="template-name-main">{{ template.name }}</span>
+                        {% if template.description %}
+                        <span class="template-name-desc">{{ template.description|truncatechars:60 }}</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    {% if template.category %}
+                    <span class="category-badge">{{ template.category }}</span>
+                    {% else %}
+                    <span style="color:var(--muted-lt);font-size:0.75rem;">Uncategorized</span>
+                    {% endif %}
+                </td>
+                <td style="font-size:0.75rem;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    {{ template.subject }}
+                </td>
+                <td>
+                    {% if template.is_active %}
+                    <span class="status-pill active">Active</span>
+                    {% else %}
+                    <span class="status-pill inactive">Inactive</span>
+                    {% endif %}
+                </td>
+                <td style="font-family:var(--font-mono);font-size:0.625rem;color:var(--muted);">
+                    {{ template.created_at|date:"M d, Y" }}
+                </td>
+                <td>
+                    <div class="row-actions">
+                        <a href="{% url 'lab:template_edit' template.id %}" class="btn btn-ghost btn-sm btn-icon" title="Edit">
+                            <i class='bx bx-edit'></i>
+                        </a>
+                        <button class="btn btn-ghost btn-sm btn-icon" onclick="useTemplate({{ template.id }})" title="Use in campaign">
+                            <i class='bx bx-mail-send'></i>
+                        </button>
+                        <form method="post" action="{% url 'lab:template_delete' template.id %}" style="display:inline;" onsubmit="return confirm('Delete this template? This action cannot be undone.')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-ghost btn-sm btn-icon" title="Delete">
+                                <i class='bx bx-trash' style="color:var(--s-spam);"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <i class='bx bx-paste'></i>
+        <p class="empty-state-title">No templates found</p>
+        <p class="empty-state-sub">
+            {% if search_query or category_filter %}
+            No templates match your filters. <a href="{% url 'lab:template_list' %}" style="color:var(--brand);">Clear filters</a>
+            {% else %}
+            Create your first email template to reuse across campaigns.
+            {% endif %}
+        </p>
+        {% if not search_query and not category_filter %}
+        <a href="{% url 'lab:template_create' %}" class="btn btn-primary btn-sm" style="margin-top:1rem;">Create template</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function useTemplate(templateId) {
+    if (confirm('Create a new campaign using this template?')) {
+        window.location.href = '/lab/campaigns/create/?template=' + templateId;
+    }
+}
+</script>
+{% endblock %}

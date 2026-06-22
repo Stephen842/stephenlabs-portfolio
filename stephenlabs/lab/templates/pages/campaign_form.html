@@ -1,0 +1,267 @@
+{% extends "pages/admin_base.html" %}
+{% load static %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_campaigns %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        gap: 1.5rem;
+        align-items: start;
+    }
+    @media (max-width: 900px) {
+        .form-grid { grid-template-columns: 1fr; }
+    }
+
+    .sidebar-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    .sidebar-card-header {
+        padding: 0.75rem 1rem;
+        background: var(--surface-2);
+        border-bottom: 1px solid var(--border);
+        font-weight: 600;
+        font-size: 0.8125rem;
+    }
+    .sidebar-card-body {
+        padding: 1rem;
+    }
+
+    .field-hint {
+        font-size: 0.6875rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+    }
+
+    .campaign-stats-preview {
+        background: var(--surface-2);
+        padding: 0.75rem 1rem;
+        border-radius: var(--radius);
+        margin-top: 0.75rem;
+        display: flex;
+        justify-content: space-around;
+        text-align: center;
+    }
+    .campaign-stats-preview .num {
+        font-family: var(--font-display);
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+    .campaign-stats-preview .label {
+        font-family: var(--font-mono);
+        font-size: 0.5rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .send-form-container {
+        max-width: 280px;
+        margin-top: 1.5rem;
+        margin-left: auto;
+    }
+    .send-form-container .btn {
+        width: 100%;
+        justify-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumb">
+    <a href="{% url 'lab:campaign_list' %}">Campaigns</a>
+    <span>/</span>
+    <span class="current">{{ title }}</span>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="page-eyebrow">Email</p>
+        <h1 class="page-title">{{ title }}</h1>
+        <p class="page-sub">{% if is_edit %}Edit existing campaign{% else %}Create a new email campaign{% endif %}</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'lab:campaign_list' %}" class="btn btn-ghost btn-sm">
+            <i class='bx bx-arrow-back'></i> Back to campaigns
+        </a>
+    </div>
+</div>
+
+<!-- Main Campaign Form -->
+<form method="post" id="campaign-form">
+    {% csrf_token %}
+
+    <div class="form-grid">
+
+        <!-- Main content -->
+        <div>
+            <!-- Subject -->
+            <div class="field-group">
+                <label class="field-label" for="{{ form.subject.id_for_label }}">Subject <span style="color:var(--s-spam);">*</span></label>
+                {{ form.subject }}
+                <div class="field-hint">Keep it under 70 characters for best open rates.</div>
+                {% if form.subject.errors %}
+                <p class="error-msg" style="color:var(--s-spam);font-size:0.75rem;margin-top:0.25rem;">{{ form.subject.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Body -->
+            <div class="field-group">
+                <label class="field-label" for="{{ form.body.id_for_label }}">Content <span style="color:var(--s-spam);">*</span></label>
+                {{ form.body }}
+                {% if form.body.errors %}
+                <p class="error-msg" style="color:var(--s-spam);font-size:0.75rem;margin-top:0.25rem;">{{ form.body.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div>
+            <!-- Sender Info -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Sender Information</div>
+                <div class="sidebar-card-body">
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.from_name.id_for_label }}">From Name</label>
+                        {{ form.from_name }}
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.from_email.id_for_label }}">From Email</label>
+                        {{ form.from_email }}
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.reply_to.id_for_label }}">Reply To</label>
+                        {{ form.reply_to }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scheduling -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Scheduling</div>
+                <div class="sidebar-card-body">
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.status.id_for_label }}">Status</label>
+                        {{ form.status }}
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.scheduled_at.id_for_label }}">Schedule Date</label>
+                        {{ form.scheduled_at }}
+                        <div class="field-hint">Leave blank to send immediately when you click "Send".</div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.priority.id_for_label }}">Priority</label>
+                        {{ form.priority }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campaign Info -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Campaign Info</div>
+                <div class="sidebar-card-body">
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.tags.id_for_label }}">Tags</label>
+                        {{ form.tags }}
+                        <div class="field-hint">Comma-separated tags for organization.</div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.is_test.id_for_label }}">
+                            {{ form.is_test }} Test Mode
+                        </label>
+                        <div class="field-hint">If enabled, sends only to test emails.</div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="{{ form.test_emails.id_for_label }}">Test Emails</label>
+                        {{ form.test_emails }}
+                        <div class="field-hint">Comma-separated list of test email addresses.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Preview -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Audience</div>
+                <div class="sidebar-card-body">
+                    <div class="campaign-stats-preview">
+                        <div>
+                            <div class="num">{{ subscriber_count }}</div>
+                            <div class="label">Active Subscribers</div>
+                        </div>
+                        <div>
+                            <div class="num">{{ draft_count }}</div>
+                            <div class="label">Draft Campaigns</div>
+                        </div>
+                    </div>
+                    <div class="field-group" style="margin-top:0.75rem;">
+                        <label class="field-label" for="{{ form.target_segments.id_for_label }}">Target Segments</label>
+                        {{ form.target_segments }}
+                        <div class="field-hint">Select subscriber segments to target (optional).</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="sidebar-card">
+                <div class="sidebar-card-header">Actions</div>
+                <div class="sidebar-card-body">
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <button type="submit" name="save" value="save" class="btn btn-primary" style="width:100%;justify-content:center;">
+                            <i class='bx bx-save'></i> Save {% if is_edit %}Changes{% else %}Campaign{% endif %}
+                        </button>
+                        {% if is_edit %}
+                        <a href="{% url 'lab:campaign_preview' campaign.id %}" target="_blank" class="btn btn-secondary" style="width:100%;justify-content:center;">
+                            <i class='bx bx-show'></i> Preview
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'lab:campaign_list' %}" class="btn btn-ghost" style="width:100%;justify-content:center;">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+<!-- ═══ SEND FORM - OUTSIDE THE MAIN FORM ═══ -->
+{% if is_edit and campaign.status != 'sent' and campaign.status != 'sending' %}
+<div class="send-form-container">
+    <form method="post" action="{% url 'lab:campaign_send' campaign.id %}" onsubmit="return confirm('Send this campaign to all active subscribers?')">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">
+            <i class='bx bx-send'></i> Send Now
+        </button>
+    </form>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Auto-save status when form submits
+document.getElementById('campaign-form').addEventListener('submit', function(e) {
+    var submitter = e.submitter;
+    if (submitter && submitter.value === 'save') {
+        // Let the form submit normally
+    }
+});
+
+// Preview button - opens in new tab
+document.querySelectorAll('a[href*="preview"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+        // Allow default behavior (opens in new tab)
+    });
+});
+</script>
+{% endblock %}

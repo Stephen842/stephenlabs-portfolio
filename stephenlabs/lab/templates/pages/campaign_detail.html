@@ -1,0 +1,278 @@
+{% extends "pages/admin_base.html" %}
+{% block page_title %}{{ campaign.subject }}{% endblock %}
+{% block nav_campaigns %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 1.5rem;
+        align-items: start;
+    }
+    @media (max-width: 900px) {
+        .detail-grid { grid-template-columns: 1fr; }
+    }
+
+    .stats-mini-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    @media (max-width: 600px) {
+        .stats-mini-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat-mini-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        text-align: center;
+    }
+    .stat-mini-card .value {
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+    .stat-mini-card .label {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-top: 0.25rem;
+    }
+
+    .recipients-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8125rem;
+    }
+    .recipients-table thead tr {
+        background: var(--surface-2);
+        border-bottom: 1px solid var(--border);
+    }
+    .recipients-table thead th {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+    }
+    .recipients-table tbody td {
+        padding: 0.5rem 0.75rem;
+        color: var(--text-2);
+        border-bottom: 1px solid var(--border);
+    }
+    .recipients-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .campaign-body-preview {
+        background: var(--surface-2);
+        border-radius: var(--radius);
+        padding: 1.25rem;
+        max-height: 400px;
+        overflow-y: auto;
+        font-size: 0.875rem;
+        line-height: 1.6;
+        color: var(--text-2);
+    }
+    .campaign-body-preview img {
+        max-width: 100%;
+        border-radius: var(--radius-sm);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<nav class="breadcrumb">
+    <a href="{% url 'lab:campaign_list' %}">Campaigns</a>
+    <span>/</span>
+    <span class="current">{{ campaign.subject|truncatechars:40 }}</span>
+</nav>
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="page-eyebrow">Email Campaign</p>
+        <h1 class="page-title">{{ campaign.subject }}</h1>
+        <p class="page-sub">
+            <span class="status-pill {{ campaign.status }}">{{ campaign.get_status_display }}</span>
+            {% if campaign.sent_at %}
+            · Sent {{ campaign.sent_at|date:"M d, Y H:i" }}
+            {% endif %}
+        </p>
+    </div>
+    <div class="page-actions">
+        {% if campaign.status != 'sent' and campaign.status != 'sending' %}
+        <form method="post" action="{% url 'lab:campaign_send' campaign.id %}" style="display:inline;" onsubmit="return confirm('Send this campaign to all active subscribers?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary btn-sm" title="Send">
+                <i class='bx bx-send'></i> Send
+            </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'lab:campaign_edit' campaign.id %}" class="btn btn-secondary btn-sm">
+            <i class='bx bx-edit'></i> Edit
+        </a>
+        <a href="{% url 'lab:campaign_preview' campaign.id %}" target="_blank" class="btn btn-secondary btn-sm">
+            <i class='bx bx-show'></i> Preview
+        </a>
+        <form method="post" action="{% url 'lab:campaign_delete' campaign.id %}" style="display:inline;" onsubmit="return confirm('Delete this campaign? This action cannot be undone.')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm">
+                <i class='bx bx-trash'></i> Delete
+            </button>
+        </form>
+        <a href="{% url 'lab:campaign_list' %}" class="btn btn-ghost btn-sm">
+            <i class='bx bx-arrow-back'></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="detail-grid">
+
+    <!-- Main content -->
+    <div>
+        <!-- Stats -->
+        <div class="stats-mini-grid">
+            <div class="stat-mini-card">
+                <div class="value">{{ campaign.total_recipients }}</div>
+                <div class="label">Recipients</div>
+            </div>
+            <div class="stat-mini-card">
+                <div class="value">{{ campaign.sent_count }}</div>
+                <div class="label">Sent</div>
+            </div>
+            <div class="stat-mini-card">
+                <div class="value">{{ open_rate|floatformat:1 }}%</div>
+                <div class="label">Open Rate</div>
+            </div>
+            <div class="stat-mini-card">
+                <div class="value">{{ click_rate|floatformat:1 }}%</div>
+                <div class="label">Click Rate</div>
+            </div>
+        </div>
+
+        <!-- Campaign Body Preview -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-header-title">Campaign Preview</span>
+            </div>
+            <div class="card-body">
+                <div class="campaign-body-preview">
+                    {{ campaign.body|safe }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Recipients -->
+        <div class="card" style="margin-top:1.5rem;">
+            <div class="card-header">
+                <span class="card-header-title">Recent Recipients</span>
+                <span style="font-family:var(--font-mono);font-size:0.625rem;color:var(--muted);">{{ recent_recipients|length }} shown</span>
+            </div>
+            {% if recent_recipients %}
+            <table class="recipients-table">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Sent</th>
+                        <th>Opened</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for recipient in recent_recipients %}
+                    <tr>
+                        <td>{{ recipient.subscriber.email }}</td>
+                        <td><span class="status-pill {{ recipient.status }}">{{ recipient.get_status_display }}</span></td>
+                        <td style="font-family:var(--font-mono);font-size:0.625rem;color:var(--muted);">{{ recipient.sent_at|date:"M d, Y"|default:"-" }}</td>
+                        <td style="font-family:var(--font-mono);font-size:0.625rem;color:var(--muted);">{{ recipient.opened_at|date:"M d, Y"|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="padding:2rem;text-align:center;color:var(--muted);font-size:0.875rem;">
+                No recipients recorded yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <span class="card-header-title">Campaign Details</span>
+            </div>
+            <div class="card-body" style="padding:0.5rem 1.25rem;">
+                <div style="padding:0.625rem 0;border-bottom:1px solid var(--border);">
+                    <p style="font-size:0.6875rem;color:var(--muted);font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;">Subject</p>
+                    <p style="font-size:0.875rem;color:var(--text-2);">{{ campaign.subject }}</p>
+                </div>
+                <div style="padding:0.625rem 0;border-bottom:1px solid var(--border);">
+                    <p style="font-size:0.6875rem;color:var(--muted);font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;">From</p>
+                    <p style="font-size:0.875rem;color:var(--text-2);">{{ campaign.from_name }} &lt;{{ campaign.from_email }}&gt;</p>
+                </div>
+                <div style="padding:0.625rem 0;border-bottom:1px solid var(--border);">
+                    <p style="font-size:0.6875rem;color:var(--muted);font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;">Priority</p>
+                    <p style="font-size:0.875rem;color:var(--text-2);"><span class="status-pill {{ campaign.priority }}">{{ campaign.get_priority_display }}</span></p>
+                </div>
+                <div style="padding:0.625rem 0;border-bottom:1px solid var(--border);">
+                    <p style="font-size:0.6875rem;color:var(--muted);font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;">Created</p>
+                    <p style="font-size:0.875rem;color:var(--text-2);font-family:var(--font-mono);font-size:0.75rem;">{{ campaign.created_at|date:"M d, Y H:i" }}</p>
+                </div>
+                <div style="padding:0.625rem 0;">
+                    <p style="font-size:0.6875rem;color:var(--muted);font-family:var(--font-mono);letter-spacing:0.08em;text-transform:uppercase;">Tags</p>
+                    <p style="font-size:0.875rem;color:var(--text-2);">
+                        {% if campaign.tags %}
+                            {% for tag in campaign.tags %}
+                            <span class="tag-pill" style="background:var(--surface-2);padding:0.125rem 0.5rem;border-radius:12px;font-size:0.625rem;">{{ tag }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span style="color:var(--muted-lt);font-style:italic;">No tags</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {% if analytics %}
+        <div class="card" style="margin-top:1rem;">
+            <div class="card-header">
+                <span class="card-header-title">Analytics</span>
+            </div>
+            <div class="card-body" style="padding:0.5rem 1.25rem;">
+                <div style="padding:0.5rem 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+                    <span style="font-size:0.8125rem;color:var(--muted);">Total Opens</span>
+                    <span style="font-family:var(--font-display);font-weight:600;color:var(--text);">{{ analytics.total_opens }}</span>
+                </div>
+                <div style="padding:0.5rem 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+                    <span style="font-size:0.8125rem;color:var(--muted);">Unique Opens</span>
+                    <span style="font-family:var(--font-display);font-weight:600;color:var(--text);">{{ analytics.unique_opens }}</span>
+                </div>
+                <div style="padding:0.5rem 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;">
+                    <span style="font-size:0.8125rem;color:var(--muted);">Total Clicks</span>
+                    <span style="font-family:var(--font-display);font-weight:600;color:var(--text);">{{ analytics.total_clicks }}</span>
+                </div>
+                <div style="padding:0.5rem 0;display:flex;justify-content:space-between;">
+                    <span style="font-size:0.8125rem;color:var(--muted);">Unique Clicks</span>
+                    <span style="font-family:var(--font-display);font-weight:600;color:var(--text);">{{ analytics.unique_clicks }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}

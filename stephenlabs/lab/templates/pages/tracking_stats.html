@@ -1,0 +1,481 @@
+{% extends "pages/admin_base.html" %}
+{% load humanize %}
+{% block page_title %}Campaign Analytics{% endblock %}
+{% block nav_tracking %}active{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    @media (max-width: 860px) { .analytics-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .analytics-grid { grid-template-columns: 1fr; } }
+
+    .analytics-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.125rem 1.25rem;
+    }
+    .analytics-card .value {
+        font-family: var(--font-display);
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text);
+        letter-spacing: -0.02em;
+    }
+    .analytics-card .label {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-top: 0.25rem;
+    }
+    .analytics-card .trend {
+        font-family: var(--font-mono);
+        font-size: 0.625rem;
+        margin-top: 0.5rem;
+        padding: 0.125rem 0.375rem;
+        border-radius: 3px;
+        display: inline-block;
+    }
+    .trend.up { background: rgba(63,185,80,0.12); color: #3FB950; }
+    .trend.down { background: rgba(248,81,73,0.12); color: #F85149; }
+    .trend.steady { background: rgba(210,153,34,0.12); color: #D29922; }
+
+    .chart-container {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    .chart-container .chart-title {
+        font-family: var(--font-display);
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 1rem;
+    }
+    .chart-bar {
+        display: flex;
+        align-items: flex-end;
+        gap: 4px;
+        height: 120px;
+        padding-top: 0.5rem;
+    }
+    .chart-bar-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        height: 100%;
+        justify-content: flex-end;
+    }
+    .chart-bar-fill {
+        width: 100%;
+        border-radius: 3px 3px 0 0;
+        min-height: 2px;
+        transition: height 0.5s ease;
+    }
+    .chart-bar-fill.opens { background: var(--brand); }
+    .chart-bar-fill.clicks { background: #3FB950; }
+    .chart-bar-label {
+        font-family: var(--font-mono);
+        font-size: 0.5rem;
+        color: var(--muted);
+        text-align: center;
+    }
+
+    .analytics-two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    @media (max-width: 768px) {
+        .analytics-two-col { grid-template-columns: 1fr; }
+    }
+
+    .engagement-donut {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        justify-content: center;
+        padding: 1rem 0;
+    }
+    .engagement-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--text-2);
+    }
+    .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .top-links-list {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .top-link-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.375rem 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.75rem;
+    }
+    .top-link-item .link-url {
+        color: var(--text-2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 250px;
+    }
+    .top-link-item .link-clicks {
+        font-family: var(--font-mono);
+        color: var(--brand);
+        flex-shrink: 0;
+    }
+
+    .campaign-perf-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8125rem;
+    }
+    .campaign-perf-table thead tr {
+        background: var(--surface-2);
+        border-bottom: 1px solid var(--border);
+    }
+    .campaign-perf-table thead th {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+    }
+    .campaign-perf-table tbody td {
+        padding: 0.5rem 0.75rem;
+        color: var(--text-2);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .rate-good { color: #3FB950; }
+    .rate-medium { color: #D29922; }
+    .rate-poor { color: #F85149; }
+
+    .status-badge-sm {
+        font-family: var(--font-mono);
+        font-size: 0.5rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.125rem 0.375rem;
+        border-radius: 100px;
+    }
+    .status-badge-sm.sent { background: rgba(63,185,80,0.12); color: #3FB950; }
+    .status-badge-sm.draft { background: rgba(210,153,34,0.12); color: #D29922; }
+    .status-badge-sm.failed { background: rgba(248,81,73,0.12); color: #F85149; }
+    .status-badge-sm.scheduled { background: rgba(210,153,34,0.12); color: #D29922; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="page-eyebrow">Analytics</p>
+        <h1 class="page-title">Campaign Analytics</h1>
+        <p class="page-sub">Comprehensive tracking and engagement metrics for all your campaigns</p>
+    </div>
+    <div class="page-actions">
+        <a href="{% url 'lab:campaign_list' %}" class="btn btn-secondary btn-sm">
+            <i class='bx bx-mail-send'></i> All Campaigns
+        </a>
+        <a href="{% url 'lab:campaign_create' %}" class="btn btn-primary btn-sm">
+            <i class='bx bx-plus'></i> New Campaign
+        </a>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="analytics-grid">
+    <div class="analytics-card">
+        <div class="value">{{ campaign_stats.total_sent|intcomma }}</div>
+        <div class="label">Total Sent</div>
+        <div>
+            <span class="trend up">+{{ campaign_stats.sent_campaigns }}</span>
+        </div>
+    </div>
+    <div class="analytics-card">
+        <div class="value">{{ campaign_stats.overall_open_rate|floatformat:1 }}%</div>
+        <div class="label">Open Rate</div>
+        <div>
+            <span class="trend {% if campaign_stats.overall_open_rate > 30 %}up{% elif campaign_stats.overall_open_rate > 15 %}steady{% else %}down{% endif %}">
+                {{ campaign_stats.total_opens|intcomma }} opens
+            </span>
+        </div>
+    </div>
+    <div class="analytics-card">
+        <div class="value">{{ campaign_stats.overall_click_rate|floatformat:1 }}%</div>
+        <div class="label">Click Rate</div>
+        <div>
+            <span class="trend {% if campaign_stats.overall_click_rate > 10 %}up{% elif campaign_stats.overall_click_rate > 5 %}steady{% else %}down{% endif %}">
+                {{ campaign_stats.total_clicks|intcomma }} clicks
+            </span>
+        </div>
+    </div>
+    <div class="analytics-card">
+        <div class="value">{{ campaign_stats.sent_campaigns }}</div>
+        <div class="label">Campaigns Sent</div>
+        <div>
+            <span class="trend steady">
+                {{ campaign_stats.draft_campaigns }} drafts
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Campaign Performance Table -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+        <span class="card-header-title">Campaign Performance</span>
+        <span style="font-family:var(--font-mono);font-size:0.625rem;color:var(--muted);">{{ campaigns|length }} campaigns</span>
+    </div>
+    {% if campaign_performance %}
+    <table class="campaign-perf-table">
+        <thead>
+            <tr>
+                <th>Campaign</th>
+                <th>Sent</th>
+                <th>Opens</th>
+                <th>Clicks</th>
+                <th>Open Rate</th>
+                <th>Click Rate</th>
+                <th>Bounce</th>
+                <th>Unsubscribe</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for perf in campaign_performance %}
+            <tr>
+                <td>
+                    <a href="{% url 'lab:campaign_detail' perf.id %}" style="color:var(--text);">
+                        {{ perf.subject|truncatechars:30 }}
+                    </a>
+                </td>
+                <td style="font-family:var(--font-mono);font-size:0.6875rem;color:var(--muted);">{{ perf.sent }}</td>
+                <td style="font-family:var(--font-mono);font-size:0.6875rem;color:var(--muted);">{{ perf.opens }}</td>
+                <td style="font-family:var(--font-mono);font-size:0.6875rem;color:var(--muted);">{{ perf.clicks }}</td>
+                <td class="{% if perf.open_rate > 30 %}rate-good{% elif perf.open_rate > 15 %}rate-medium{% else %}rate-poor{% endif %}">
+                    {{ perf.open_rate|floatformat:1 }}%
+                </td>
+                <td class="{% if perf.click_rate > 10 %}rate-good{% elif perf.click_rate > 5 %}rate-medium{% else %}rate-poor{% endif %}">
+                    {{ perf.click_rate|floatformat:1 }}%
+                </td>
+                <td style="font-family:var(--font-mono);font-size:0.6875rem;color:var(--muted);">{{ perf.bounce_rate|floatformat:1 }}%</td>
+                <td style="font-family:var(--font-mono);font-size:0.6875rem;color:var(--muted);">{{ perf.unsubscribe_rate|floatformat:1 }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="padding:2rem;text-align:center;color:var(--muted);">
+        <i class='bx bx-stats' style="font-size:2.5rem;display:block;color:var(--muted-lt);margin-bottom:0.875rem;"></i>
+        <p>No campaign performance data available yet.</p>
+        <p style="font-size:0.8125rem;color:var(--muted-lt);margin-top:0.5rem;">Send your first campaign to start tracking engagement.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Engagement Breakdown & Top Links -->
+<div class="analytics-two-col">
+    <!-- Engagement Breakdown -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-header-title">Engagement Breakdown</span>
+        </div>
+        <div class="card-body">
+            <div class="engagement-donut">
+                <div style="position:relative;width:120px;height:120px;">
+                    <svg viewBox="0 0 100 100" style="transform:rotate(-90deg);width:100%;height:100%;">
+                        {% with total=subscriber_engagement.total_sent %}
+                        {% if total > 0 %}
+                        <!-- Opened -->
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#2563EB" stroke-width="20"
+                                stroke-dasharray="{{ subscriber_engagement.total_opened|floatformat:0|add:0 }} {{ total|floatformat:0|add:0|add:0 }}"
+                                stroke-linecap="round" style="transition:stroke-dasharray 0.5s ease;"/>
+                        <!-- Clicked -->
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#3FB950" stroke-width="20"
+                                stroke-dasharray="{{ subscriber_engagement.total_clicked|floatformat:0|add:0 }} {{ total|floatformat:0|add:0|add:0 }}"
+                                stroke-linecap="round" stroke-dashoffset="0" style="transition:stroke-dasharray 0.5s ease;"/>
+                        <!-- Bounced -->
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#D29922" stroke-width="20"
+                                stroke-dasharray="{{ subscriber_engagement.total_bounced|floatformat:0|add:0 }} {{ total|floatformat:0|add:0|add:0 }}"
+                                stroke-linecap="round" stroke-dashoffset="0" style="transition:stroke-dasharray 0.5s ease;"/>
+                        <!-- Failed -->
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#F85149" stroke-width="20"
+                                stroke-dasharray="{{ subscriber_engagement.total_failed|floatformat:0|add:0 }} {{ total|floatformat:0|add:0|add:0 }}"
+                                stroke-linecap="round" stroke-dashoffset="0" style="transition:stroke-dasharray 0.5s ease;"/>
+                        <!-- Unsubscribed -->
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#8B5CF6" stroke-width="20"
+                                stroke-dasharray="{{ subscriber_engagement.total_unsubscribed|floatformat:0|add:0 }} {{ total|floatformat:0|add:0|add:0 }}"
+                                stroke-linecap="round" stroke-dashoffset="0" style="transition:stroke-dasharray 0.5s ease;"/>
+                        {% endif %}
+                        {% endwith %}
+                    </svg>
+                    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+                        <div style="font-family:var(--font-display);font-size:1.25rem;font-weight:700;color:var(--text);">
+                            {{ subscriber_engagement.total_sent }}
+                        </div>
+                        <div style="font-family:var(--font-mono);font-size:0.5rem;color:var(--muted);">Total</div>
+                    </div>
+                </div>
+                <div class="engagement-legend">
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background:#2563EB;"></span>
+                        Opened ({{ subscriber_engagement.total_opened }})
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background:#3FB950;"></span>
+                        Clicked ({{ subscriber_engagement.total_clicked }})
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background:#D29922;"></span>
+                        Bounced ({{ subscriber_engagement.total_bounced }})
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background:#F85149;"></span>
+                        Failed ({{ subscriber_engagement.total_failed }})
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-dot" style="background:#8B5CF6;"></span>
+                        Unsubscribed ({{ subscriber_engagement.total_unsubscribed }})
+                    </div>
+                    <div class="legend-item" style="color:var(--muted-lt);">
+                        <span class="legend-dot" style="background:var(--surface-2);border:1px solid var(--border);"></span>
+                        Not Opened ({{ engagement_breakdown.not_opened }})
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Clicked Links -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-header-title">Top Clicked Links</span>
+            <span style="font-family:var(--font-mono);font-size:0.625rem;color:var(--muted);">Most engaged</span>
+        </div>
+        <div class="card-body">
+            {% if top_links %}
+            <div class="top-links-list">
+                {% for url, count in top_links %}
+                <div class="top-link-item">
+                    <span class="link-url" title="{{ url }}">{{ url|truncatechars:50 }}</span>
+                    <span class="link-clicks">{{ count }} clicks</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align:center;padding:1.5rem;color:var(--muted-lt);">
+                <i class='bx bx-link' style="font-size:2rem;display:block;margin-bottom:0.5rem;"></i>
+                <p style="font-size:0.875rem;">No clicks tracked yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Weekly Summary -->
+<div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+        <span class="card-header-title">Monthly Performance Summary</span>
+        <span style="font-family:var(--font-mono);font-size:0.625rem;color:var(--muted);">Last 12 months</span>
+    </div>
+    <div style="padding:1.25rem;">
+        {% if weekly_summary %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.75rem;">
+            {% for week in weekly_summary %}
+            <div style="background:var(--surface-2);border-radius:var(--radius);padding:0.75rem;text-align:center;">
+                <div style="font-family:var(--font-mono);font-size:0.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">
+                    {{ week.week|date:"M Y" }}
+                </div>
+                <div style="font-family:var(--font-display);font-size:1rem;font-weight:700;color:var(--text);margin:0.25rem 0;">
+                    {{ week.total_sent|intcomma }}
+                </div>
+                <div style="display:flex;justify-content:center;gap:0.75rem;font-size:0.625rem;color:var(--muted);">
+                    <span>🗨️ {{ week.total_opens }}</span>
+                    <span>🖱️ {{ week.total_clicks }}</span>
+                </div>
+                <div style="font-size:0.5625rem;color:var(--muted-lt);margin-top:0.25rem;">
+                    {{ week.campaigns }} campaign{{ week.campaigns|pluralize }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:1.5rem;color:var(--muted-lt);">
+            <p>No monthly data available yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Recent Tracking Events -->
+<div class="card">
+    <div class="card-header">
+        <span class="card-header-title">Recent Tracking Events</span>
+        <span style="font-family:var(--font-mono);font-size:0.625rem;color:var(--muted);">Live feed</span>
+    </div>
+    <div style="max-height:250px;overflow-y:auto;">
+        {% if recent_tracking %}
+        {% for event in recent_tracking %}
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 1rem;border-bottom:1px solid var(--border);font-size:0.8125rem;color:var(--text-2);">
+            <span style="font-size:1rem;flex-shrink:0;">
+                {% if event.event_type == 'open' %}👁️{% elif event.event_type == 'click' %}🖱️{% elif event.event_type == 'bounce' %}💥{% elif event.event_type == 'unsubscribe' %}🚫{% else %}📋{% endif %}
+            </span>
+            <div style="flex:1;min-width:0;">
+                <span style="font-weight:500;color:var(--text);">{{ event.campaign.subject|truncatechars:30 }}</span>
+                <span style="font-family:var(--font-mono);font-size:0.6875rem;color:var(--muted);">— {{ event.recipient.subscriber.email }}</span>
+            </div>
+            <span style="font-family:var(--font-mono);font-size:0.5625rem;color:var(--muted-lt);flex-shrink:0;">
+                {{ event.created_at|date:"M d, H:i" }}
+            </span>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div style="padding:2rem;text-align:center;color:var(--muted-lt);">
+            <p>No tracking events recorded yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Auto-refresh tracking stats every 60 seconds (optional)
+setTimeout(function() {
+    location.reload();
+}, 60000);
+</script>
+{% endblock %}

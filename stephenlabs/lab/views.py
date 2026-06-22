@@ -1,27 +1,28 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_http_methods
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q,  Sum, Count
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.conf import settings
 from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 from django.views.decorators.csrf import csrf_exempt
-from django.utils.safestring import mark_safe
+from django.core.mail import EmailMultiAlternatives
+from django.db.models.functions import TruncDate, TruncMonth
+import json
+from datetime import timedelta
 
 import markdown
-import os
-import uuid
 import logging
 import cloudinary, cloudinary.uploader
 
 from contact.models import ContactMessage
 from blog.models import Post, Category, Tag, Subscriber
-from lab.forms import CategoryForm, TagForm, PostForm
+from lab.models import Campaign, CampaignRecipient, CampaignTemplate, EmailSegment, CampaignAnalytics, EmailTracking
+from lab.forms import CategoryForm, TagForm, PostForm, CampaignForm, CampaignTemplateForm
 
 
 # ── Dashboard home ──────────────────────────────────────────────────────────
@@ -59,7 +60,7 @@ def dashboard_home(request):
 
 @staff_member_required
 def post_create(request):
-    """Create a new blog post"""
+    '''Create a new blog post'''
  
     if request.method == 'POST':
         # request.FILES must be passed or the uploaded image
@@ -78,7 +79,7 @@ def post_create(request):
             # explicit save_tags() method on PostForm instead. ──
             form.save_tags(post)
  
-            messages.success(request, f'Post "{post.title}" created successfully.')
+            messages.success(request, f"Post '{post.title}' created successfully.")
             return redirect('lab:post_edit', post_id=post.id)
     else:
         form = PostForm()
@@ -95,7 +96,7 @@ def post_create(request):
  
 @staff_member_required
 def post_edit(request, post_id):
-    """Edit an existing blog post"""
+    '''Edit an existing blog post'''
  
     post = get_object_or_404(Post, id=post_id)
  
@@ -110,7 +111,7 @@ def post_edit(request, post_id):
             # ── FIX: was form.save_m2m() — same issue as post_create above. ──
             form.save_tags(updated_post)
  
-            messages.success(request, f'Post "{updated_post.title}" updated successfully.')
+            messages.success(request, f"Post '{updated_post.title}' updated successfully.")
             return redirect('lab:post_edit', post_id=post.id)
     else:
         form = PostForm(instance=post)
@@ -136,7 +137,7 @@ def post_preview(request, post_id):
 @staff_member_required
 @require_http_methods(['POST'])
 def post_preview_ajax(request):
-    """AJAX endpoint for live preview while editing"""
+    '''AJAX endpoint for live preview while editing'''
     content = request.POST.get('content', '')
     title = request.POST.get('title', 'Preview')
  
@@ -406,8 +407,8 @@ def tinymce_upload(request):
     Handle TinyMCE file uploads (images, documents, media) via Cloudinary.
     Called from the file_picker_callback configured in TINYMCE_DEFAULT_CONFIG.
  
-    TinyMCE expects back:  {"location": "<public_url>"}
-    On error it expects:   {"error": "<message>"} with a 4xx/5xx status.
+    TinyMCE expects back:  {'location': '<public_url>'}
+    On error it expects:   {'error': '<message>'} with a 4xx/5xx status.
     '''
     file_obj = request.FILES.get('file')
  
@@ -416,7 +417,7 @@ def tinymce_upload(request):
  
     if file_obj.content_type not in ALLOWED_TYPES:
         return JsonResponse(
-            {'error': f'File type "{file_obj.content_type}" is not allowed.'},
+            {'error': f"File type '{file_obj.content_type}' is not allowed."},
             status=400
         )
  
@@ -445,6 +446,714 @@ def tinymce_upload(request):
         logger.exception('Unexpected error during TinyMCE upload')
         return JsonResponse({'error': 'An unexpected error occurred.'}, status=500)
 
+
+# ── Campaign List ──────────────────────────────────────────────────────────
+@staff_member_required
+def campaign_list(request):
+    '''List all campaigns'''
+    
+    status_filter = request.GET.get('status', '')
+    search_query = request.GET.get('q', '')
+    
+    campaigns_qs = Campaign.objects.select_related('created_by').all()
+    
+    if status_filter:
+        campaigns_qs = campaigns_qs.filter(status=status_filter)
+    if search_query:
+        campaigns_qs = campaigns_qs.filter(
+            Q(subject__icontains=search_query) |
+            Q(tags__icontains=search_query)
+        )
+    
+    paginator = Paginator(campaigns_qs, 25)
+    page = paginator.get_page(request.GET.get('page', 1))
+
+    # Get all counts for the stats strip
+    total_count = Campaign.objects.count()
+    draft_count = Campaign.objects.filter(status=Campaign.Status.DRAFT).count()
+    scheduled_count = Campaign.objects.filter(status=Campaign.Status.SCHEDULED).count()
+    sent_count = Campaign.objects.filter(status=Campaign.Status.SENT).count()
+    failed_count = Campaign.objects.filter(status=Campaign.Status.FAILED).count()
+    
+    context = {
+        'campaigns': page,
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'total_count': total_count,
+        'draft_count': draft_count,
+        'scheduled_count': scheduled_count,
+        'sent_count': sent_count,
+        'failed_count': failed_count,
+        
+        # Sidebar counts
+        'draft_count_sidebar': Campaign.objects.filter(status=Campaign.Status.DRAFT).count(),
+        
+        'new_message_count': ContactMessage.objects.filter(status='new').count(),
+        'title': 'Email Campaigns · Dashboard',
+    }
+    return render(request, 'pages/campaign_list.html', context)
+
+
+# ── Campaign Create ───────────────────────────────────────────────────────
+@staff_member_required
+def campaign_create(request):
+    '''Create a new campaign'''
+    
+    if request.method == 'POST':
+        form = CampaignForm(request.POST)
+        if form.is_valid():
+            campaign = form.save(commit=False)
+            campaign.created_by = request.user
+            campaign.total_recipients = Subscriber.objects.filter(is_active=True).count()
+            campaign.save()
+            form.save_m2m()
+            
+            messages.success(request, f"Campaign '{campaign.subject}' created successfully.")
+            return redirect('lab:campaign_edit', campaign_id=campaign.id)
+    else:
+        form = CampaignForm(initial={
+            'from_email': 'Stephenslab001@gmail.com',
+            'from_name': 'The StephensLab Team',
+            'reply_to': 'Stephenslab001@gmail.com',
+        })
+    
+    context = {
+        'form': form,
+        'title': 'Create Campaign',
+        'is_edit': False,
+        'draft_count': Campaign.objects.filter(status=Campaign.Status.DRAFT).count(),
+        'new_message_count': ContactMessage.objects.filter(status='new').count(),
+        'subscriber_count': Subscriber.objects.filter(is_active=True).count(),
+    }
+    return render(request, 'pages/campaign_form.html', context)
+
+
+# ── Campaign Edit ──────────────────────────────────────────────────────────
+@staff_member_required
+def campaign_edit(request, campaign_id):
+    '''Edit an existing campaign'''
+    
+    campaign = get_object_or_404(Campaign, id=campaign_id)
+    
+    if request.method == 'POST':
+        form = CampaignForm(request.POST, instance=campaign)
+        if form.is_valid():
+            campaign = form.save()
+            messages.success(request, f"Campaign '{campaign.subject}' updated successfully.")
+            return redirect('lab:campaign_edit', campaign_id=campaign.id)
+    else:
+        form = CampaignForm(instance=campaign)
+    
+    context = {
+        'form': form,
+        'campaign': campaign,
+        'title': 'Edit Campaign',
+        'is_edit': True,
+        'draft_count': Campaign.objects.filter(status=Campaign.Status.DRAFT).count(),
+        'new_message_count': ContactMessage.objects.filter(status='new').count(),
+        'subscriber_count': Subscriber.objects.filter(is_active=True).count(),
+    }
+    return render(request, 'pages/campaign_form.html', context)
+
+
+# ── Campaign Preview ──────────────────────────────────────────────────────
+@staff_member_required
+def campaign_preview(request, campaign_id):
+    '''Preview a campaign'''
+    
+    campaign = get_object_or_404(Campaign, id=campaign_id)
+    context = {
+        'campaign': campaign,
+        'draft_count': Campaign.objects.filter(status=Campaign.Status.DRAFT).count(),
+        'new_message_count': ContactMessage.objects.filter(status='new').count(),
+    }
+    return render(request, 'pages/campaign_preview.html', context)
+
+
+# ── Campaign Send ──────────────────────────────────────────────────────────
+@staff_member_required
+@require_http_methods(['POST'])
+def campaign_send(request, campaign_id):
+    '''Send a campaign to all active subscribers'''
+    
+    campaign = get_object_or_404(Campaign, id=campaign_id)
+    
+    if campaign.status in [Campaign.Status.SENT, Campaign.Status.SENDING]:
+        messages.error(request, 'This campaign has already been sent or is currently being sent.')
+        return redirect('lab:campaign_detail', campaign_id=campaign.id)
+    
+    # Get all active subscribers
+    subscribers = Subscriber.objects.filter(is_active=True)
+    
+    if not subscribers.exists():
+        messages.error(request, 'No active subscribers to send to.')
+        return redirect('lab:campaign_edit', campaign_id=campaign.id)
+    
+    # Update campaign status
+    campaign.status = Campaign.Status.SENDING
+    campaign.sent_at = timezone.now()
+    campaign.total_recipients = subscribers.count()
+    campaign.save()
+    
+    # Process sending (in a real app, this would be a background task)
+    try:
+        sent_count = send_campaign_emails(campaign, subscribers)
+        campaign.sent_count = sent_count
+
+        # Only mark as SENT if at least one email was sent
+        if sent_count > 0:
+            campaign.status = Campaign.Status.SENT
+            CampaignAnalytics.objects.create(campaign=campaign)
+            messages.success(request, f'Campaign sent to {sent_count} subscribers.')
+        else:
+            campaign.status = Campaign.Status.FAILED
+            messages.error(request, 'Campaign failed to send to any subscribers.')
+
+        campaign.save()
+        
+    except Exception as e:
+        # Ensure campaign is marked as FAILED
+        campaign.status = Campaign.Status.FAILED
+        campaign.save()
+        messages.error(request, f'Failed to send campaign: {str(e)}')
+    
+    return redirect('lab:campaign_detail', campaign_id=campaign.id)
+
+
+# ── Campaign Detail ──────────────────────────────────────────────────────
+@staff_member_required
+def campaign_detail(request, campaign_id):
+    '''View campaign details and analytics'''
+    
+    campaign = get_object_or_404(Campaign, id=campaign_id)
+    analytics = CampaignAnalytics.objects.filter(campaign=campaign).first()
+    recent_recipients = CampaignRecipient.objects.filter(
+        campaign=campaign
+    ).select_related('subscriber')[:20]
+    
+    context = {
+        'campaign': campaign,
+        'analytics': analytics,
+        'recent_recipients': recent_recipients,
+        'open_rate': campaign.get_open_rate(),
+        'click_rate': campaign.get_click_rate(),
+        'bounce_rate': campaign.get_bounce_rate(),
+        'unsubscribe_rate': campaign.get_unsubscribe_rate(),
+        'draft_count': Campaign.objects.filter(status=Campaign.Status.DRAFT).count(),
+        'new_message_count': ContactMessage.objects.filter(status='new').count(),
+        'title': f'{campaign.subject} · Campaign',
+    }
+    return render(request, 'pages/campaign_detail.html', context)
+
+
+# ── Campaign Delete ──────────────────────────────────────────────────────
+@staff_member_required
+def campaign_delete(request, campaign_id):
+    '''Delete a campaign'''
+    
+    campaign = get_object_or_404(Campaign, id=campaign_id)
+    
+    if request.method == 'POST':
+        campaign.delete()
+        messages.success(request, 'Campaign deleted successfully.')
+        return redirect('lab:campaign_list')
+    
+    context = {
+        'campaign': campaign,
+        'draft_count': Campaign.objects.filter(status=Campaign.Status.DRAFT).count(),
+        'new_message_count': ContactMessage.objects.filter(status='new').count(),
+    }
+    return render(request, 'pages/campaign_delete.html', context)
+
+
+# ── Template List ──────────────────────────────────────────────────────────
+@staff_member_required
+def template_list(request):
+    '''List all email templates'''
+    
+    templates = CampaignTemplate.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'templates': templates,
+        'draft_count': Campaign.objects.filter(status=Campaign.Status.DRAFT).count(),
+        'new_message_count': ContactMessage.objects.filter(status='new').count(),
+        'title': 'Email Templates · Dashboard',
+    }
+    return render(request, 'pages/template_list.html', context)
+
+
+# ── Template Create ──────────────────────────────────────────────────────
+@staff_member_required
+def template_create(request):
+    '''Create a new email template'''
+    
+    if request.method == 'POST':
+        form = CampaignTemplateForm(request.POST)
+        if form.is_valid():
+            template = form.save(commit=False)
+            template.created_by = request.user
+            template.save()
+            messages.success(request, f"Template '{template.name}' created successfully.")
+            return redirect('lab:template_list')
+    else:
+        form = CampaignTemplateForm()
+    
+    context = {
+        'form': form,
+        'title': 'Create Template',
+        'draft_count': Campaign.objects.filter(status=Campaign.Status.DRAFT).count(),
+        'new_message_count': ContactMessage.objects.filter(status='new').count(),
+    }
+    return render(request, 'pages/template_form.html', context)
+
+
+# ── Template Edit ──────────────────────────────────────────────────────────
+@staff_member_required
+def template_edit(request, template_id):
+    '''Edit an existing email template'''
+    
+    template = get_object_or_404(CampaignTemplate, id=template_id)
+    
+    if request.method == 'POST':
+        form = CampaignTemplateForm(request.POST, instance=template)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Template '{template.name}' updated successfully.")
+            return redirect('lab:template_list')
+    else:
+        form = CampaignTemplateForm(instance=template)
+    
+    context = {
+        'form': form,
+        'template': template,
+        'title': 'Edit Template',
+        'draft_count': Campaign.objects.filter(status=Campaign.Status.DRAFT).count(),
+        'new_message_count': ContactMessage.objects.filter(status='new').count(),
+    }
+    return render(request, 'pages/template_form.html', context)
+
+
+# ── Template Delete ──────────────────────────────────────────────────────
+@staff_member_required
+def template_delete(request, template_id):
+    '''Delete a template'''
+    
+    template = get_object_or_404(CampaignTemplate, id=template_id)
+    
+    if request.method == 'POST':
+        template.delete()
+        messages.success(request, 'Template deleted successfully.')
+        return redirect('lab:template_list')
+    
+    context = {
+        'template': template,
+        'draft_count': Campaign.objects.filter(status=Campaign.Status.DRAFT).count(),
+        'new_message_count': ContactMessage.objects.filter(status='new').count(),
+    }
+    return render(request, 'pages/template_delete.html', context)
+
+
+# ── Helper Function: Send Campaign Emails ──────────────────────────────
+def send_campaign_emails(campaign, subscribers):
+    '''Send campaign emails to subscribers'''
+    
+    sent_count = 0
+    failed_count = 0
+    
+    for subscriber in subscribers:
+        try:
+            first_name = subscriber.email.split('@')[0] if subscriber.email else 'Reader'
+
+            # Prepare email context with personalization
+            context = {
+                'campaign': campaign,
+                'subscriber': subscriber,
+                'email': subscriber.email,
+                'first_name': first_name,
+                'full_name': subscriber.email,
+                'unsubscribe_url': f'/unsubscribe/{subscriber.id}/',
+                'tracking_pixel_url': f'/lab/track/open/{campaign.id}/{subscriber.id}/',
+                'campaign_id': campaign.id,
+                'year': timezone.now().year,
+            }
+            
+            # Render email body with personalization
+            html_body = campaign.body
+            # Replace personalization tags
+            for key, value in context.items():
+                if isinstance(value, str):
+                    html_body = html_body.replace(f'{{{{ {key} }}}}', value)
+                elif isinstance(value, (int, float)):
+                    html_body = html_body.replace(f'{{{{ {key} }}}}', str(value))
+            
+            # Create email
+            email = EmailMultiAlternatives(
+                subject=campaign.subject,
+                body='',  # Plain text version can be generated from HTML
+                from_email=f'{campaign.from_name} <{campaign.from_email}>',
+                to=[subscriber.email],
+                reply_to=[campaign.reply_to],
+            )
+            
+            # Attach HTML version
+            email.attach_alternative(html_body, 'text/html')
+            
+            # Send email
+            email.send(fail_silently=False)
+            
+            # Record successful send
+            CampaignRecipient.objects.create(
+                campaign=campaign,
+                subscriber=subscriber,
+                status=CampaignRecipient.Status.SENT,
+                sent_at=timezone.now()
+            )
+            
+            sent_count += 1
+            
+        except Exception as e:
+            failed_count += 1
+            
+            # Record failed attempt
+            CampaignRecipient.objects.create(
+                campaign=campaign,
+                subscriber=subscriber,
+                status=CampaignRecipient.Status.FAILED,
+                error_message=str(e)[:500],
+                sent_at=timezone.now()
+            )
+    
+    return sent_count
+
+
+# ── Tracking Endpoint: Open Tracking ──────────────────────────────────
+@csrf_exempt
+def track_open(request, campaign_id, subscriber_id):
+    '''Track email opens'''
+    
+    if request.method == 'GET':
+        try:
+            campaign = get_object_or_404(Campaign, id=campaign_id)
+            subscriber = get_object_or_404(Subscriber, id=subscriber_id)
+            
+            recipient = CampaignRecipient.objects.filter(
+                campaign=campaign,
+                subscriber=subscriber
+            ).first()
+            
+            if recipient and recipient.status != CampaignRecipient.Status.OPENED:
+                recipient.status = CampaignRecipient.Status.OPENED
+                recipient.opened_at = timezone.now()
+                recipient.save()
+                
+                # Create tracking event
+                EmailTracking.objects.create(
+                    campaign=campaign,
+                    recipient=recipient,
+                    event_type=EmailTracking.EventType.OPEN,
+                    ip_address=get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    metadata={'user_agent': request.META.get('HTTP_USER_AGENT', '')}
+                )
+                
+                # Update campaign stats
+                campaign.opened_count += 1
+                campaign.save()
+                
+                # Return transparent 1x1 pixel
+                response = HttpResponse(content_type='image/gif')
+                response.write(b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff\x21\xf9\x04\x01\x00\x00\x00\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02\x44\x01\x00\x3b')
+                return response
+                
+        except Exception as e:
+            pass
+    
+    return HttpResponse(status=204)
+
+
+# ── Tracking Endpoint: Click Tracking ──────────────────────────────────
+@csrf_exempt
+def track_click(request, campaign_id, subscriber_id):
+    '''Track email clicks'''
+    
+    if request.method == 'GET':
+        url = request.GET.get('url', '')
+        
+        try:
+            campaign = get_object_or_404(Campaign, id=campaign_id)
+            subscriber = get_object_or_404(Subscriber, id=subscriber_id)
+            
+            recipient = CampaignRecipient.objects.filter(
+                campaign=campaign,
+                subscriber=subscriber
+            ).first()
+            
+            if recipient:
+                if recipient.status != CampaignRecipient.Status.CLICKED:
+                    recipient.status = CampaignRecipient.Status.CLICKED
+                    recipient.clicked_at = timezone.now()
+                    recipient.save()
+                
+                # Track clicked link
+                if url:
+                    links = recipient.clicked_links or []
+                    if url not in links:
+                        links.append(url)
+                        recipient.clicked_links = links
+                        recipient.save()
+                
+                # Create tracking event
+                EmailTracking.objects.create(
+                    campaign=campaign,
+                    recipient=recipient,
+                    event_type=EmailTracking.EventType.CLICK,
+                    url=url,
+                    ip_address=get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    metadata={'url': url}
+                )
+                
+                # Update campaign stats
+                campaign.clicked_count += 1
+                campaign.save()
+                
+        except Exception as e:
+            pass
+    
+    # Redirect to the target URL
+    if url:
+        return redirect(url)
+    return redirect('/')
+
+
+def get_client_ip(request):
+    '''Get client IP address'''
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+# ── Subscriber Segments ──────────────────────────────────────────────────
+@staff_member_required
+def segment_list(request):
+    '''List all subscriber segments'''
+    
+    segments = EmailSegment.objects.all().order_by('name')
+    
+    context = {
+        'segments': segments,
+        'draft_count': Campaign.objects.filter(status=Campaign.Status.DRAFT).count(),
+        'new_message_count': ContactMessage.objects.filter(status='new').count(),
+        'title': 'Subscriber Segments · Dashboard',
+    }
+    return render(request, 'pages/segment_list.html', context)
+
+
+# ── Tracking Stats ──────────────────────────────────────────────────────────
+@staff_member_required
+def tracking_stats(request):
+    '''View comprehensive campaign tracking statistics'''
+    
+    # ── Basic Campaign Stats ──────────────────────────────────────────
+    total_campaigns = Campaign.objects.count()
+    sent_campaigns = Campaign.objects.filter(status=Campaign.Status.SENT).count()
+    draft_campaigns = Campaign.objects.filter(status=Campaign.Status.DRAFT).count()
+    failed_campaigns = Campaign.objects.filter(status=Campaign.Status.FAILED).count()
+    scheduled_campaigns = Campaign.objects.filter(status=Campaign.Status.SCHEDULED).count()
+    
+    # ── Delivery Stats ─────────────────────────────────────────────────
+    total_sent = Campaign.objects.filter(status=Campaign.Status.SENT).aggregate(
+        total=Sum('sent_count')
+    )['total'] or 0
+    
+    total_recipients = Campaign.objects.filter(status=Campaign.Status.SENT).aggregate(
+        total=Sum('total_recipients')
+    )['total'] or 0
+    
+    total_bounced = Campaign.objects.filter(status=Campaign.Status.SENT).aggregate(
+        total=Sum('bounced_count')
+    )['total'] or 0
+    
+    total_unsubscribed = Campaign.objects.filter(status=Campaign.Status.SENT).aggregate(
+        total=Sum('unsubscribe_count')
+    )['total'] or 0
+    
+    # ── Engagement Stats ───────────────────────────────────────────────
+    total_opens = Campaign.objects.filter(status=Campaign.Status.SENT).aggregate(
+        total=Sum('opened_count')
+    )['total'] or 0
+    
+    total_clicks = Campaign.objects.filter(status=Campaign.Status.SENT).aggregate(
+        total=Sum('clicked_count')
+    )['total'] or 0
+    
+    # ── Rate Calculations ──────────────────────────────────────────────
+    overall_open_rate = (total_opens / total_sent * 100) if total_sent > 0 else 0
+    overall_click_rate = (total_clicks / total_sent * 100) if total_sent > 0 else 0
+    overall_bounce_rate = (total_bounced / total_sent * 100) if total_sent > 0 else 0
+    overall_unsubscribe_rate = (total_unsubscribed / total_sent * 100) if total_sent > 0 else 0
+    
+    # ── Recent Campaigns (last 30 days) ──────────────────────────────
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    recent_campaigns = Campaign.objects.filter(
+        status=Campaign.Status.SENT,
+        sent_at__gte=thirty_days_ago
+    ).order_by('-sent_at')
+    
+    # ── Daily Stats for Chart ──────────────────────────────────────────
+    daily_stats = Campaign.objects.filter(
+        status=Campaign.Status.SENT,
+        sent_at__gte=thirty_days_ago
+    ).annotate(
+        date=TruncDate('sent_at')
+    ).values('date').annotate(
+        sent=Sum('sent_count'),
+        opens=Sum('opened_count'),
+        clicks=Sum('clicked_count'),
+        bounces=Sum('bounced_count'),
+        unsubscribes=Sum('unsubscribe_count')
+    ).order_by('date')
+    
+    # ── Campaign Performance ───────────────────────────────────────────
+    campaign_performance = []
+    for campaign in recent_campaigns[:20]:
+        campaign_performance.append({
+            'id': campaign.id,
+            'subject': campaign.subject,
+            'sent': campaign.sent_count,
+            'opens': campaign.opened_count,
+            'clicks': campaign.clicked_count,
+            'open_rate': campaign.get_open_rate(),
+            'click_rate': campaign.get_click_rate(),
+            'bounce_rate': campaign.get_bounce_rate(),
+            'unsubscribe_rate': campaign.get_unsubscribe_rate(),
+            'sent_at': campaign.sent_at,
+        })
+    
+    # ── Top Performing Campaigns ──────────────────────────────────────
+    top_performers = Campaign.objects.filter(
+        status=Campaign.Status.SENT,
+        sent_count__gt=0
+    ).order_by('-opened_count')[:5]
+    
+    top_performers_data = []
+    for campaign in top_performers:
+        top_performers_data.append({
+            'id': campaign.id,
+            'subject': campaign.subject,
+            'open_rate': campaign.get_open_rate(),
+            'click_rate': campaign.get_click_rate(),
+        })
+    
+    # ── Subscriber Engagement ─────────────────────────────────────────
+    subscriber_engagement = CampaignRecipient.objects.filter(
+        campaign__status=Campaign.Status.SENT
+    ).aggregate(
+        total_sent=Count('id'),
+        total_opened=Count('id', filter=Q(status=CampaignRecipient.Status.OPENED)),
+        total_clicked=Count('id', filter=Q(status=CampaignRecipient.Status.CLICKED)),
+        total_bounced=Count('id', filter=Q(status=CampaignRecipient.Status.BOUNCED)),
+        total_unsubscribed=Count('id', filter=Q(status=CampaignRecipient.Status.UNSUBSCRIBED)),
+        total_failed=Count('id', filter=Q(status=CampaignRecipient.Status.FAILED)),
+    )
+    
+    # ── Click Link Analytics ──────────────────────────────────────────
+    all_clicked_links = []
+    for recipient in CampaignRecipient.objects.filter(
+        campaign__status=Campaign.Status.SENT,
+        clicked_links__isnull=False
+    ).exclude(clicked_links=[]):
+        if recipient.clicked_links:
+            all_clicked_links.extend(recipient.clicked_links)
+    
+    from collections import Counter
+    top_links = Counter(all_clicked_links).most_common(10)
+    
+    # ── Daily Trends Data (for charts) ────────────────────────────────
+    daily_labels = [item['date'].strftime('%b %d') for item in daily_stats]
+    daily_opens = [item['opens'] for item in daily_stats]
+    daily_clicks = [item['clicks'] for item in daily_stats]
+    daily_sent = [item['sent'] for item in daily_stats]
+    
+    # ── Recent Tracking Events ────────────────────────────────────────
+    recent_tracking = EmailTracking.objects.select_related(
+        'campaign', 'recipient__subscriber'
+    ).order_by('-created_at')[:50]
+    
+    # ── Weekly Summary ─────────────────────────────────────────────────
+    weekly_summary = Campaign.objects.filter(
+        status=Campaign.Status.SENT
+    ).annotate(
+        week=TruncMonth('sent_at')
+    ).values('week').annotate(
+        total_sent=Sum('sent_count'),
+        total_opens=Sum('opened_count'),
+        total_clicks=Sum('clicked_count'),
+        campaigns=Count('id')
+    ).order_by('-week')[:12]
+    
+    # ── Campaign Stats Summary ────────────────────────────────────────
+    campaign_stats_summary = {
+        'total_campaigns': total_campaigns,
+        'sent_campaigns': sent_campaigns,
+        'draft_campaigns': draft_campaigns,
+        'failed_campaigns': failed_campaigns,
+        'scheduled_campaigns': scheduled_campaigns,
+        'total_sent': total_sent,
+        'total_recipients': total_recipients,
+        'total_opens': total_opens,
+        'total_clicks': total_clicks,
+        'total_bounced': total_bounced,
+        'total_unsubscribed': total_unsubscribed,
+        'overall_open_rate': overall_open_rate,
+        'overall_click_rate': overall_click_rate,
+        'overall_bounce_rate': overall_bounce_rate,
+        'overall_unsubscribe_rate': overall_unsubscribe_rate,
+    }
+    
+    # ── Engagement Breakdown ──────────────────────────────────────────
+    engagement_breakdown = {
+        'opened': subscriber_engagement['total_opened'],
+        'clicked': subscriber_engagement['total_clicked'],
+        'bounced': subscriber_engagement['total_bounced'],
+        'unsubscribed': subscriber_engagement['total_unsubscribed'],
+        'failed': subscriber_engagement['total_failed'],
+        'not_opened': subscriber_engagement['total_sent'] - subscriber_engagement['total_opened'],
+    }
+    
+    context = {
+        # Campaign stats
+        'campaign_stats': campaign_stats_summary,
+        'campaign_performance': campaign_performance,
+        'top_performers': top_performers_data,
+        
+        # Engagement data
+        'engagement_breakdown': engagement_breakdown,
+        'subscriber_engagement': subscriber_engagement,
+        
+        # Chart data
+        'daily_labels': json.dumps(daily_labels),
+        'daily_opens': json.dumps(daily_opens),
+        'daily_clicks': json.dumps(daily_clicks),
+        'daily_sent': json.dumps(daily_sent),
+        'weekly_summary': weekly_summary,
+        
+        # Recent activity
+        'recent_tracking': recent_tracking,
+        'top_links': top_links,
+        
+        # All campaigns
+        'campaigns': recent_campaigns[:50],
+        
+        # Sidebar counts
+        'draft_count': Campaign.objects.filter(status=Campaign.Status.DRAFT).count(),
+        'new_message_count': ContactMessage.objects.filter(status='new').count(),
+        'title': 'Campaign Analytics · Dashboard',
+    }
+    return render(request, 'pages/tracking_stats.html', context)
 
 def custom_logout(request):
     logout(request)

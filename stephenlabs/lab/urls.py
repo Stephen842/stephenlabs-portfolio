@@ -38,4 +38,29 @@ urlpatterns = [
 
     # TinyMCE image upload endpoint
     path('tinymce-upload/', views.tinymce_upload, name='tinymce_upload'),
+
+    # Campaign URLs
+    path('campaigns/', views.campaign_list, name='campaign_list'),
+    path('campaigns/create/', views.campaign_create, name='campaign_create'),
+    path('campaigns/<int:campaign_id>/edit/', views.campaign_edit, name='campaign_edit'),
+    path('campaigns/<int:campaign_id>/preview/', views.campaign_preview, name='campaign_preview'),
+    path('campaigns/<int:campaign_id>/send/', views.campaign_send, name='campaign_send'),
+    path('campaigns/<int:campaign_id>/detail/', views.campaign_detail, name='campaign_detail'),
+    path('campaigns/<int:campaign_id>/delete/', views.campaign_delete, name='campaign_delete'),
+    
+    # Template URLs
+    path('templates/', views.template_list, name='template_list'),
+    path('templates/create/', views.template_create, name='template_create'),
+    path('templates/<int:template_id>/edit/', views.template_edit, name='template_edit'),
+    path('templates/<int:template_id>/delete/', views.template_delete, name='template_delete'),
+    
+    # Tracking URLs (public)
+    path('track/open/<int:campaign_id>/<int:subscriber_id>/', views.track_open, name='track_open'),
+    path('track/click/<int:campaign_id>/<int:subscriber_id>/', views.track_click, name='track_click'),
+    
+    # Tracking Stats (admin)
+    path('tracking/', views.tracking_stats, name='tracking_stats'),  # <-- ADD THIS
+    
+    # Segment URLs````````````````````````````````````````````````````````````
+    path('segments/', views.segment_list, name='segment_list'),
 ]
